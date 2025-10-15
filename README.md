@@ -318,7 +318,7 @@ When using this Software in any commercial or public project, you **MUST** inclu
 ```markdown
 ## Acknowledgments
 - Based on AI Agent Starter Pack by Arkadiusz Słota
-- Framework: AI Agent Starter Pack (https://github.com/your-repo)
+- Framework: AI Agent Starter Pack (https://github.com/Maggio333/ai-agent-starter-pack)
 - Author: Arkadiusz Słota
 ```
 

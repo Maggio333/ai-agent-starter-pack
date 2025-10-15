@@ -219,7 +219,7 @@ resource "google_cloud_run_service" "ai_agent" {
   "containerDefinitions": [
     {
       "name": "ai-agent",
-      "image": "your-account.dkr.ecr.region.amazonaws.com/ai-agent:latest",
+      "image": "Maggio333.dkr.ecr.region.amazonaws.com/ai-agent:latest",
       "portMappings": [
         {
           "containerPort": 8000,
@@ -233,7 +233,7 @@ resource "google_cloud_run_service" "ai_agent" {
         },
         {
           "name": "HUGGINGFACE_API_TOKEN",
-          "value": "your-token"
+          "value": "your-openai-token"
         }
       ],
       "logConfiguration": {
@@ -261,7 +261,7 @@ properties:
   containers:
   - name: ai-agent
     properties:
-      image: your-registry.azurecr.io/ai-agent:latest
+      image: Maggio333.azurecr.io/ai-agent:latest
       ports:
       - port: 8000
       environmentVariables:
@@ -283,8 +283,8 @@ properties:
 ```bash
 # Production environment
 export EMBEDDING_PROVIDER=google
-export GOOGLE_PROJECT_ID=your-project
-export GOOGLE_API_KEY=your-key
+export GOOGLE_PROJECT_ID=Maggio333-project
+export GOOGLE_API_KEY=your-google-key
 export QDRANT_URL=https://qdrant.example.com
 export CACHE_PROVIDER=redis
 export REDIS_URL=redis://redis.example.com:6379
@@ -504,7 +504,7 @@ jobs:
     - name: Build Docker image
       run: docker build -t ai-agent .
     - name: Push to registry
-      run: docker push your-registry/ai-agent:latest
+      run: docker push Maggio333/ai-agent:latest
 
   deploy:
     needs: build

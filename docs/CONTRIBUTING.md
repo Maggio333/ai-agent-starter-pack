@@ -14,11 +14,11 @@ We welcome contributions to the AI Agent Starter Pack! This guide will help you 
 ```bash
 # Fork the repository on GitHub
 # Clone your fork
-git clone https://github.com/your-username/ai-agent-starter-pack.git
+git clone https://github.com/Maggio333/ai-agent-starter-pack.git
 cd ai-agent-starter-pack
 
 # Add upstream remote
-git remote add upstream https://github.com/original-repo/ai-agent-starter-pack.git
+git remote add upstream https://github.com/Maggio333/ai-agent-starter-pack.git
 ```
 
 ### **Development Setup**
