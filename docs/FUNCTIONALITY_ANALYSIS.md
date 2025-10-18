@@ -376,7 +376,7 @@
 
 ### **Configuration Services (3 serwisy)**
 
-#### **1. ConfigService** ⚙️
+#### **1. IConfigService** ⚙️
 **Funkcjonalność**: Centralna konfiguracja
 - **Service configuration** - konfiguracja serwisów
 - **Environment management** - zarządzanie środowiskiem
@@ -474,9 +474,57 @@
 - **Quality monitoring** - monitorowanie jakości
 - **Quality analytics** - analityka jakości
 
-### **Services (3 serwisy)**
+### **Services (12 interfejsów)**
 
-#### **1. LLMService** 🤖
+#### **1. ICityService** 🏙️
+**Funkcjonalność**: Interfejs serwisu informacji o miastach
+- **City interface** - interfejs miasta
+- **City operations** - operacje na miastach
+- **City validation** - walidacja miast
+- **City monitoring** - monitorowanie miast
+- **City analytics** - analityka miast
+
+#### **2. IConfigService** ⚙️
+**Funkcjonalność**: Interfejs serwisu konfiguracji
+- **Config interface** - interfejs konfiguracji
+- **Config operations** - operacje konfiguracji
+- **Config validation** - walidacja konfiguracji
+- **Config monitoring** - monitorowanie konfiguracji
+- **Config analytics** - analityka konfiguracji
+
+#### **3. IConversationService** 💬
+**Funkcjonalność**: Interfejs serwisu zarządzania konwersacjami
+- **Conversation interface** - interfejs konwersacji
+- **Conversation operations** - operacje konwersacji
+- **Conversation validation** - walidacja konwersacji
+- **Conversation monitoring** - monitorowanie konwersacji
+- **Conversation analytics** - analityka konwersacji
+
+#### **4. IDIService** 🔧
+**Funkcjonalność**: Interfejs serwisu Dependency Injection
+- **DI interface** - interfejs DI
+- **DI operations** - operacje DI
+- **DI validation** - walidacja DI
+- **DI monitoring** - monitorowanie DI
+- **DI analytics** - analityka DI
+
+#### **5. IEmailService** 📧
+**Funkcjonalność**: Interfejs serwisu email
+- **Email interface** - interfejs email
+- **Email operations** - operacje email
+- **Email validation** - walidacja email
+- **Email monitoring** - monitorowanie email
+- **Email analytics** - analityka email
+
+#### **6. IKnowledgeService** 🧠
+**Funkcjonalność**: Interfejs serwisu bazy wiedzy
+- **Knowledge interface** - interfejs wiedzy
+- **Knowledge operations** - operacje wiedzy
+- **Knowledge validation** - walidacja wiedzy
+- **Knowledge monitoring** - monitorowanie wiedzy
+- **Knowledge analytics** - analityka wiedzy
+
+#### **7. ILLMService** 🤖
 **Funkcjonalność**: Interfejs serwisu LLM
 - **LLM interface** - interfejs LLM
 - **LLM operations** - operacje LLM
@@ -484,7 +532,31 @@
 - **LLM monitoring** - monitorowanie LLM
 - **LLM analytics** - analityka LLM
 
-#### **2. VectorDbService** 🗄️
+#### **8. IOrchestrationService** 🎭
+**Funkcjonalność**: Interfejs serwisu orkiestracji
+- **Orchestration interface** - interfejs orkiestracji
+- **Orchestration operations** - operacje orkiestracji
+- **Orchestration validation** - walidacja orkiestracji
+- **Orchestration monitoring** - monitorowanie orkiestracji
+- **Orchestration analytics** - analityka orkiestracji
+
+#### **9. ITextCleanerService** 🧹
+**Funkcjonalność**: Interfejs serwisu czyszczenia tekstu
+- **Text cleaning interface** - interfejs czyszczenia tekstu
+- **Text cleaning operations** - operacje czyszczenia tekstu
+- **Text cleaning validation** - walidacja czyszczenia tekstu
+- **Text cleaning monitoring** - monitorowanie czyszczenia tekstu
+- **Text cleaning analytics** - analityka czyszczenia tekstu
+
+#### **10. ITimeService** ⏰
+**Funkcjonalność**: Interfejs serwisu czasu
+- **Time interface** - interfejs czasu
+- **Time operations** - operacje czasu
+- **Time validation** - walidacja czasu
+- **Time monitoring** - monitorowanie czasu
+- **Time analytics** - analityka czasu
+
+#### **11. IVectorDbService** 🗄️
 **Funkcjonalność**: Interfejs serwisu bazy wektorowej
 - **Vector DB interface** - interfejs bazy wektorowej
 - **Vector operations** - operacje na wektorach
@@ -492,7 +564,15 @@
 - **Vector monitoring** - monitorowanie wektorów
 - **Vector analytics** - analityka wektorów
 
-#### **3. ROPService** 🚂
+#### **12. IWeatherService** 🌤️
+**Funkcjonalność**: Interfejs serwisu pogodowego
+- **Weather interface** - interfejs pogody
+- **Weather operations** - operacje pogody
+- **Weather validation** - walidacja pogody
+- **Weather monitoring** - monitorowanie pogody
+- **Weather analytics** - analityka pogody
+
+#### **13. ROPService** 🚂
 **Funkcjonalność**: Railway Oriented Programming
 - **Error handling** - obsługa błędów
 - **Result pattern** - wzorzec Result
@@ -632,6 +712,7 @@
 - **Microservices Architecture** - rozbicie na mikroserwisy
 - **Facade Pattern** - koordynacja mikroserwisów
 - **Railway Oriented Programming** - obsługa błędów
+- **C#-Style Interfaces** - profesjonalne interfejsy z prefiksem I
 
 #### **🤖 AI Services**
 - **5 Embedding Providers** - LM Studio, HuggingFace, Google, OpenAI, Local

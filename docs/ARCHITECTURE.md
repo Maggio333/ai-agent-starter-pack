@@ -28,17 +28,25 @@
 ├─────────────────────────────────────────────────────────────────┤
 │  DI Container      │  DTOs            │  Application Services   │
 │  - Container       │  - Request/Resp  │  - Orchestration       │
-│  - ContainerMgr    │  - Validation    │  - Business Logic      │
+│  - DIService       │  - Validation    │  - Business Logic      │
 └─────────────────────────────────────────────────────────────────┘
                                 │
 ┌─────────────────────────────────────────────────────────────────┐
 │                          DOMAIN LAYER                           │
 ├─────────────────────────────────────────────────────────────────┤
-│  Entities          │  Services        │  Repositories          │
-│  - ChatMessage     │  - LLMService     │  - ChatRepository      │
-│  - RAGChunk        │  - VectorDbSvc   │  - VectorDbRepo        │
-│  - QualityLevel    │  - ROPService     │  - EmbeddingRepo       │
-│  - Metadata        │  - ConfigService  │  - CacheRepo           │
+│  Entities          │  Interfaces (I*) │  Repositories          │
+│  - ChatMessage     │  - ILLMService    │  - ChatRepository      │
+│  - RAGChunk        │  - IVectorDbSvc   │  - VectorDbRepo        │
+│  - QualityLevel    │  - ITextCleanerSvc│  - EmbeddingRepo       │
+│  - Metadata        │  - IConfigService │  - CacheRepo           │
+│                    │  - ICityService   │  - SearchRepo          │
+│                    │  - IWeatherSvc   │  - HealthRepo           │
+│                    │  - ITimeService   │                        │
+│                    │  - IKnowledgeSvc  │                        │
+│                    │  - IConversationSvc│                       │
+│                    │  - IOrchestrationSvc│                      │
+│                    │  - IDIService     │                        │
+│                    │  - IEmailService  │                        │
 └─────────────────────────────────────────────────────────────────┘
                                 │
 ┌─────────────────────────────────────────────────────────────────┐
@@ -55,7 +63,7 @@
 ## 🎯 Key Architectural Patterns
 
 ### **1. Clean Architecture**
-- **Domain Layer**: Core business logic, entities, and interfaces
+- **Domain Layer**: Core business logic, entities, and C#-style interfaces (I*)
 - **Application Layer**: Use cases, orchestration, and DTOs
 - **Infrastructure Layer**: External dependencies and implementations
 - **Presentation Layer**: APIs, CLI, and user interfaces
@@ -77,6 +85,12 @@
 - **Service Decomposition**: Specialized, focused services
 - **Loose Coupling**: Independent service evolution
 - **Scalability**: Horizontal scaling capabilities
+
+### **5. C#-Style Interface Architecture**
+- **Interface Naming**: All interfaces use `I` prefix (ICityService, IWeatherService, etc.)
+- **Abstract Methods**: Clear separation of interface from implementation
+- **Enterprise Patterns**: Professional patterns from C#/.NET ecosystem
+- **Consistency**: Every service has its corresponding interface
 
 ## 📦 Service Architecture
 

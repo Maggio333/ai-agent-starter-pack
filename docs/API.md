@@ -22,16 +22,15 @@ cp .env.example .env
 
 ### **Quick Start**
 ```python
-from application.container import ContainerManager
+from application.services.di_service import DIService
 
-# Initialize container
-container_manager = ContainerManager()
-container = container_manager.container
+# Initialize DI service
+di_service = DIService()
 
 # Get services
-embedding_service = container.embedding_service().value
-vector_db_service = container.vector_db_service()
-health_service = container.health_service()
+embedding_service = di_service.get_embedding_service()
+vector_db_service = di_service.get_vector_db_service()
+health_service = di_service.get_health_service()
 
 # Use services
 embedding_result = await embedding_service.create_embedding("Hello world")
