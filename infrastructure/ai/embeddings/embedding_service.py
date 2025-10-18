@@ -2,12 +2,12 @@
 import logging
 from typing import List, Dict, Any, Optional
 from domain.utils.result import Result
-from .base_embedding_service import BaseEmbeddingService
+from .IEmbeddingService import IEmbeddingService
 from .google_embedding_service import GoogleEmbeddingService
 from .openai_embedding_service import OpenAIEmbeddingService
 from .local_embedding_service import LocalEmbeddingService
 
-class EmbeddingService(BaseEmbeddingService):
+class EmbeddingService(IEmbeddingService):
     """Facade for embedding services with provider selection"""
     
     def __init__(self, provider: str = "local", **kwargs):

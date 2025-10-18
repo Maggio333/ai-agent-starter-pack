@@ -19,7 +19,7 @@ from typing import List, Dict, Any
 sys.path.append('.')
 
 # Import all major components
-from application.container import ContainerManager
+from application.services.di_service import DIService
 from domain.entities.chat_message import ChatMessage, MessageRole
 from domain.entities.rag_chunk import RAGChunk
 from domain.entities.quality_level import QualityLevel
@@ -28,8 +28,8 @@ class IntegrationTestSuite:
     """Integration test suite"""
     
     def __init__(self):
-        self.container_manager = ContainerManager()
-        self.container = self.container_manager.container
+        self.di_service = DIService()
+        self.container = self.di_service.get_container()
         self.test_results = []
         self.passed_tests = 0
         self.failed_tests = 0
@@ -55,13 +55,13 @@ class IntegrationTestSuite:
         """Test integration between embedding service and vector database"""
         try:
             # Get services
-            embedding_result = self.container.embedding_service()
+            embedding_service = self.di_service.get_embedding_service()
             if embedding_result.is_error:
                 self.log_test_result("Embedding-VectorDB Integration", False, "Embedding service creation failed")
                 return False
             
             embedding_service = embedding_result.value
-            vector_db_service = self.container.vector_db_service()
+            vector_db_service = self.di_service.get_vector_db_service()
             
             # Create collection
             collection_name = "integration_test_collection"
@@ -120,8 +120,8 @@ class IntegrationTestSuite:
         """Test integration between chat repository and vector database"""
         try:
             # Get services
-            chat_repository = self.container.chat_repository()
-            vector_db_service = self.container.vector_db_service()
+            chat_repository = self.di_service.get_chat_repository()
+            vector_db_service = self.di_service.get_vector_db_service()
             
             # Create a chat message
             test_message = ChatMessage(
@@ -191,8 +191,8 @@ class IntegrationTestSuite:
         """Test integration between cache service and embedding service"""
         try:
             # Get services
-            cache_service = self.container.cache_service()
-            embedding_result = self.container.embedding_service()
+            cache_service = self.di_service.get_cache_service()
+            embedding_service = self.di_service.get_embedding_service()
             if embedding_result.is_error:
                 self.log_test_result("Cache-Embedding Integration", False, "Embedding service creation failed")
                 return False
@@ -249,8 +249,8 @@ class IntegrationTestSuite:
         """Test integration between search service and vector database"""
         try:
             # Get services
-            search_service = self.container.search_service()
-            vector_db_service = self.container.vector_db_service()
+            search_service = self.di_service.get_search_service()
+            vector_db_service = self.di_service.get_vector_db_service()
             
             # Create collection
             collection_name = "search_integration_collection"
@@ -334,12 +334,12 @@ class IntegrationTestSuite:
         """Test integration between application services"""
         try:
             # Get services
-            orchestration_service = self.container.orchestration_service()
-            conversation_service = self.container.conversation_service()
-            knowledge_service = self.container.knowledge_service()
-            city_service = self.container.city_service()
-            weather_service = self.container.weather_service()
-            time_service = self.container.time_service()
+            orchestration_service = self.di_service.get_orchestration_service()
+            conversation_service = self.di_service.get_conversation_service()
+            knowledge_service = self.di_service.get_knowledge_service()
+            city_service = self.di_service.get_city_service()
+            weather_service = self.di_service.get_weather_service()
+            time_service = self.di_service.get_time_service()
             
             # Test orchestration service coordination
             test_request = "What is the weather like in Warsaw today?"
@@ -395,14 +395,14 @@ class IntegrationTestSuite:
         """Test integration between health monitoring and all services"""
         try:
             # Get health service
-            health_service = self.container.health_service()
+            health_service = self.di_service.get_health_service()
             
             # Get all services for health monitoring
-            embedding_service = self.container.embedding_service().value
-            vector_db_service = self.container.vector_db_service()
-            chat_repository = self.container.chat_repository()
-            cache_service = self.container.cache_service()
-            search_service = self.container.search_service()
+            embedding_service = self.di_service.get_embedding_service()
+            vector_db_service = self.di_service.get_vector_db_service()
+            chat_repository = self.di_service.get_chat_repository()
+            cache_service = self.di_service.get_cache_service()
+            search_service = self.di_service.get_search_service()
             
             # Test overall health
             overall_health_result = await health_service.get_overall_health()
@@ -440,13 +440,13 @@ class IntegrationTestSuite:
         """Test complete end-to-end integration"""
         try:
             # Get all services
-            embedding_service = self.container.embedding_service().value
-            vector_db_service = self.container.vector_db_service()
-            chat_repository = self.container.chat_repository()
-            cache_service = self.container.cache_service()
-            search_service = self.container.search_service()
-            orchestration_service = self.container.orchestration_service()
-            health_service = self.container.health_service()
+            embedding_service = self.di_service.get_embedding_service()
+            vector_db_service = self.di_service.get_vector_db_service()
+            chat_repository = self.di_service.get_chat_repository()
+            cache_service = self.di_service.get_cache_service()
+            search_service = self.di_service.get_search_service()
+            orchestration_service = self.di_service.get_orchestration_service()
+            health_service = self.di_service.get_health_service()
             
             # Step 1: User asks a question
             user_question = "What is the weather like in Krakow today?"

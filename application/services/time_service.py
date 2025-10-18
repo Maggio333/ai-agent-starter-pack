@@ -1,10 +1,11 @@
 # services/time_service.py
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from domain.utils.result import Result
 from domain.services.rop_service import ROPService
+from domain.services.ITimeService import ITimeService
 
-class TimeService:
+class TimeService(ITimeService):
     """Microservice for time and timezone operations"""
     
     def __init__(self):
@@ -28,11 +29,11 @@ class TimeService:
                 "dst": False,
                 "country": "Japan"
             },
-            "paris": {
-                "timezone": "Europe/Paris",
+            "katowice": {
+                "timezone": "Europe/Katowice",
                 "utc_offset": "+1:00",
                 "dst": True,
-                "country": "France"
+                "country": "Poland"
             },
             "sydney": {
                 "timezone": "Australia/Sydney",
@@ -222,3 +223,16 @@ class TimeService:
             return Result.success(is_supported)
         except Exception as e:
             return Result.error(f"Failed to check city support: {str(e)}")
+    
+    async def health_check(self) -> Result[Dict[str, Any], str]:
+        """Check service health"""
+        try:
+            health_data = {
+                'status': 'healthy',
+                'service': self.__class__.__name__,
+                'timezones_count': len(self._timezone_data),
+                'supported_cities': list(self._timezone_data.keys())[:5]  # First 5 cities
+            }
+            return Result.success(health_data)
+        except Exception as e:
+            return Result.error(f"Health check failed: {str(e)}")

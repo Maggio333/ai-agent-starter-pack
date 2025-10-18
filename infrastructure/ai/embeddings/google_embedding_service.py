@@ -2,9 +2,9 @@
 import httpx
 from typing import List, Dict, Any, Optional
 from domain.utils.result import Result
-from .base_embedding_service import BaseEmbeddingService
+from .IEmbeddingService import IEmbeddingService
 
-class GoogleEmbeddingService(BaseEmbeddingService):
+class GoogleEmbeddingService(IEmbeddingService):
     """Google Vertex AI embedding service"""
     
     def __init__(self, api_key: str, project_id: str, location: str = "us-central1", 

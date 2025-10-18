@@ -2,9 +2,9 @@
 import httpx
 from typing import List, Dict, Any, Optional
 from domain.utils.result import Result
-from .base_embedding_service import BaseEmbeddingService
+from .IEmbeddingService import IEmbeddingService
 
-class HuggingFaceEmbeddingService(BaseEmbeddingService):
+class HuggingFaceEmbeddingService(IEmbeddingService):
     """Hugging Face embedding service (FREE)"""
     
     def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2", 

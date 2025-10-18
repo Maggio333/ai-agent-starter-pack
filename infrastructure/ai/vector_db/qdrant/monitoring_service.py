@@ -1,7 +1,7 @@
 # infrastructure/ai/vector_db/qdrant/monitoring_service.py
 from typing import Dict, Any, List
 from domain.utils.result import Result
-from .base_qdrant_service import BaseQdrantService
+from .BaseQdrantService import BaseQdrantService
 
 class MonitoringService(BaseQdrantService):
     """Service for monitoring Qdrant performance and health"""

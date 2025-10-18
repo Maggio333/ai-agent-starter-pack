@@ -1,12 +1,11 @@
-# infrastructure/ai/vector_db/qdrant/base_qdrant_service.py
+# infrastructure/ai/vector_db/qdrant/BaseQdrantService.py
 import httpx
 import logging
 from typing import List, Dict, Any, Optional
-from abc import ABC, abstractmethod
 from domain.utils.result import Result
 
-class BaseQdrantService(ABC):
-    """Base class for Qdrant services with common functionality"""
+class BaseQdrantService:  # Klasa bazowa z wspólną funkcjonalnością
+    """Klasa bazowa dla serwisów Qdrant z wspólną funkcjonalnością"""
     
     def __init__(self, url: str = "http://localhost:6333", api_key: Optional[str] = None):
         self.url = url.rstrip('/')
@@ -14,14 +13,14 @@ class BaseQdrantService(ABC):
         self.logger = logging.getLogger(self.__class__.__name__)
     
     def _get_headers(self) -> Dict[str, str]:
-        """Get HTTP headers for Qdrant requests"""
+        """Zwraca nagłówki HTTP dla żądań do Qdrant"""
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         return headers
     
     async def _make_request(self, method: str, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Result[Dict[str, Any], str]:
-        """Make HTTP request to Qdrant API"""
+        """Wykonuje żądanie HTTP do API Qdrant"""
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 url = f"{self.url}{endpoint}"
@@ -59,7 +58,7 @@ class BaseQdrantService(ABC):
             return Result.error(error_msg)
     
     async def health_check(self) -> Result[dict, str]:
-        """Check Qdrant service health"""
+        """Sprawdza stan zdrowia serwisu Qdrant"""
         try:
             result = await self._make_request("GET", "/health")
             if result.is_success:
@@ -77,14 +76,14 @@ class BaseQdrantService(ABC):
             return Result.error(f"Health check failed: {str(e)}")
     
     def _validate_collection_name(self, collection_name: str) -> bool:
-        """Validate collection name format"""
+        """Waliduje format nazwy kolekcji"""
         if not collection_name or not isinstance(collection_name, str):
             return False
-        # Qdrant collection names should be alphanumeric with underscores
+        # Nazwy kolekcji Qdrant powinny być alfanumeryczne z podkreśleniami
         return collection_name.replace('_', '').replace('-', '').isalnum()
     
     def _validate_vector_dimension(self, vector: List[float]) -> bool:
-        """Validate vector dimension"""
+        """Waliduje wymiar wektora"""
         if not vector or not isinstance(vector, list):
             return False
         return all(isinstance(x, (int, float)) for x in vector)

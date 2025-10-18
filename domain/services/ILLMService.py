@@ -4,7 +4,7 @@ from typing import List, AsyncIterator, Dict, Any, Optional
 from domain.entities.chat_message import ChatMessage
 from domain.utils.result import Result
 
-class LLMService(ABC):
+class ILLMService(ABC):  # Interfejs zgodny z konwencją C# dla czytelności
     """Enhanced LLM service interface with comprehensive AI capabilities"""
     
     # Basic Completion Operations

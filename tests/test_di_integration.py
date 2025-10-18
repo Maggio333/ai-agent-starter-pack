@@ -7,7 +7,7 @@ sys.path.append('.')
 
 import asyncio
 from datetime import datetime
-from application.container import ContainerManager
+from application.services.di_service import DIService
 from domain.entities.rag_chunk import RAGChunk
 from domain.entities.chat_message import ChatMessage, MessageRole
 from domain.models.metadata import RAGChunkMetadata, MetadataType
@@ -16,21 +16,20 @@ async def test_di_integration():
     print('🎯 Testing DI + LM Studio + Qdrant Integration...')
     print('=' * 60)
     
-    # Initialize DI Container
-    print('📦 Initializing DI Container...')
-    container_manager = ContainerManager()
-    container = container_manager.container
+    # Initialize DI Service
+    print('📦 Initializing DI Service...')
+    di_service = DIService()
+    container = di_service.get_container()
     
     # Get services from DI
     print('🔧 Getting services from DI...')
-    embedding_service_result = container.embedding_service()
-    vector_db_service = container.vector_db_service()
+    embedding_service = di_service.get_embedding_service()
+    vector_db_service = di_service.get_vector_db_service()
     
-    if embedding_service_result.is_error:
-        print(f'❌ Failed to get embedding service: {embedding_service_result.error}')
+    if embedding_service is None:
+        print('❌ Failed to get embedding service')
         return
     
-    embedding_service = embedding_service_result.value
     print(f'✅ Embedding Service: {type(embedding_service).__name__}')
     print(f'✅ Vector DB Service: {type(vector_db_service).__name__}')
     
@@ -68,15 +67,15 @@ async def test_di_integration():
     # Create test chunks with real embeddings
     test_chunks = [
         RAGChunk(
-            text_chunk="Matematyczne idiomy są fascynujące",
+            text_chunk="Testowe dane są fascynujące",
             chat_messages=[
                 ChatMessage(
-                    content="Czy możesz opowiedzieć o matematycznych idiomach?",
+                    content="Czy możesz opowiedzieć o testach?",
                     role=MessageRole.USER,
                     timestamp=datetime.now()
                 ),
                 ChatMessage(
-                    content="Matematyczne idiomy są fascynujące! To są wyrażenia, które mają ukryte znaczenie matematyczne.",
+                    content="Testy są fascynujące! To są wyrażenia, które mają ukryte znaczenie techniczne.",
                     role=MessageRole.ASSISTANT,
                     timestamp=datetime.now()
                 )
@@ -127,7 +126,7 @@ async def test_di_integration():
     
     # Test search with real embeddings
     print('\n🔍 Testing search with real embeddings...')
-    search_result = await vector_db_service.search("matematyczne idiomy", limit=2)
+    search_result = await vector_db_service.search("testowe dane", limit=2)
     if search_result.is_success:
         print(f'✅ Search successful: {len(search_result.value)} results')
         for i, chunk in enumerate(search_result.value):

@@ -1,7 +1,7 @@
 # infrastructure/ai/vector_db/qdrant/collection_service.py
 from typing import List, Dict, Any, Optional
 from domain.utils.result import Result
-from .base_qdrant_service import BaseQdrantService
+from .BaseQdrantService import BaseQdrantService
 
 class CollectionService(BaseQdrantService):
     """Service for managing Qdrant collections"""

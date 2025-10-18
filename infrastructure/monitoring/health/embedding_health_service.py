@@ -4,13 +4,13 @@ import logging
 from typing import Dict, Any
 from datetime import datetime
 from domain.utils.result import Result
-from .base_health_service import BaseHealthService, HealthCheck, HealthStatus
-from ...ai.embeddings.base_embedding_service import BaseEmbeddingService
+from .IHealthService import IHealthService, HealthCheck, HealthStatus
+from ...ai.embeddings.IEmbeddingService import IEmbeddingService
 
-class EmbeddingHealthService(BaseHealthService):
+class EmbeddingHealthService(IHealthService):
     """Health service for embedding services"""
     
-    def __init__(self, embedding_service: BaseEmbeddingService):
+    def __init__(self, embedding_service: IEmbeddingService):
         super().__init__("EmbeddingService")
         self.embedding_service = embedding_service
         self.logger = logging.getLogger(__name__)

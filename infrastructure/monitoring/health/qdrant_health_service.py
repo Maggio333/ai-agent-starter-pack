@@ -4,10 +4,10 @@ import logging
 from typing import Dict, Any
 from datetime import datetime
 from domain.utils.result import Result
-from .base_health_service import BaseHealthService, HealthCheck, HealthStatus
+from .IHealthService import IHealthService, HealthCheck, HealthStatus
 from ...ai.vector_db.qdrant_service import QdrantService
 
-class QdrantHealthService(BaseHealthService):
+class QdrantHealthService(IHealthService):
     """Health service for Qdrant vector database"""
     
     def __init__(self, qdrant_service: QdrantService):

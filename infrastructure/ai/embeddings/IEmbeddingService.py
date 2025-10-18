@@ -1,11 +1,11 @@
-# infrastructure/ai/embeddings/base_embedding_service.py
+# infrastructure/ai/embeddings/IEmbeddingService.py
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 import logging
 from domain.utils.result import Result
 
-class BaseEmbeddingService(ABC):
-    """Base class for embedding services"""
+class IEmbeddingService(ABC):  # Interfejs zgodny z konwencją C# dla czytelności
+    """Abstrakcyjny interfejs serwisu embeddingów"""
     
     def __init__(self, model_name: str = "default", dimension: int = 384):
         self.model_name = model_name
@@ -14,23 +14,23 @@ class BaseEmbeddingService(ABC):
     
     @abstractmethod
     async def create_embedding(self, text: str) -> Result[List[float], str]:
-        """Create embedding for single text"""
+        """Tworzy embedding dla pojedynczego tekstu"""
         pass
     
     @abstractmethod
     async def create_embeddings_batch(self, texts: List[str]) -> Result[List[List[float]], str]:
-        """Create embeddings for multiple texts"""
+        """Tworzy embeddingi dla wielu tekstów jednocześnie"""
         pass
     
     @abstractmethod
     async def get_model_info(self) -> Result[Dict[str, Any], str]:
-        """Get model information"""
+        """Zwraca informacje o modelu"""
         pass
     
     async def health_check(self) -> Result[dict, str]:
-        """Check service health"""
+        """Sprawdza stan serwisu"""
         try:
-            # Test embedding with simple text
+            # Test embedding z prostym tekstem
             test_result = await self.embed_text("test")
             if test_result.is_success:
                 health_data = {
@@ -47,13 +47,13 @@ class BaseEmbeddingService(ABC):
             return Result.error(f"Health check failed: {str(e)}")
     
     def _validate_text(self, text: str) -> bool:
-        """Validate input text"""
+        """Waliduje tekst wejściowy"""
         if not text or not isinstance(text, str):
             return False
         return len(text.strip()) > 0
     
     def _validate_texts(self, texts: List[str]) -> bool:
-        """Validate input texts"""
+        """Waliduje listę tekstów wejściowych"""
         if not texts or not isinstance(texts, list):
             return False
         return all(self._validate_text(text) for text in texts)

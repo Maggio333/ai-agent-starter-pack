@@ -1,7 +1,8 @@
 # agents/ChatAgent.py
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from google.adk.agents import Agent
+from google.adk.models.lite_llm import LiteLlm
 from application.services.di_service import DIService
 from domain.utils.result import Result
 from domain.services.rop_service import ROPService
@@ -19,9 +20,9 @@ class ChatAgent:
         self.llm_service = self.di_service.get_llm_service()
         self.vector_db_service = self.di_service.get_vector_db_service()
         
-        # Initialize microservices
-        self.conversation_service = ConversationService(self.chat_repository)
-        self.orchestration_service = OrchestrationService(self.conversation_service)
+        # Initialize microservices using DI service
+        self.conversation_service = self.di_service.get_conversation_service()
+        self.orchestration_service = self.di_service.get_orchestration_service()
         
         # Service registry for easy access
         self._services = {
@@ -81,7 +82,7 @@ class ChatAgent:
         """Search knowledge base using Knowledge Service"""
         return await self.orchestration_service.process_knowledge_request(query, "search")
     
-    async def add_knowledge(self, content: str, metadata: Dict[str, Any] = None) -> Result[None, str]:
+    async def add_knowledge(self, content: str, metadata: Optional[Dict[str, Any]] = None) -> Result[None, str]:
         """Add new knowledge to the knowledge base"""
         return await self.orchestration_service.knowledge_service.add_knowledge(content, metadata)
     
@@ -90,7 +91,7 @@ class ChatAgent:
         return await self.orchestration_service.process_knowledge_request("", "stats")
     
     # Conversation Service Methods
-    async def start_conversation(self, context: Dict[str, Any] = None) -> Result[str, str]:
+    async def start_conversation(self, context: Optional[Dict[str, Any]] = None) -> Result[str, str]:
         """Start a new conversation session"""
         return await self.orchestration_service.process_conversation_request("start", context=context)
     
@@ -107,7 +108,7 @@ class ChatAgent:
         return await self.orchestration_service.process_conversation_request("stats")
     
     # Orchestration Methods
-    async def process_city_request(self, city: str, session_id: str = None) -> Result[Dict[str, Any], str]:
+    async def process_city_request(self, city: str, session_id: Optional[str] = None) -> Result[Dict[str, Any], str]:
         """Advanced ROP pipeline with multiple validations and data sources using Orchestration Service"""
         return await self.orchestration_service.process_city_request(city, session_id)
     
@@ -128,7 +129,7 @@ class ChatAgent:
         """List all available microservices"""
         return list(self._services.keys())
     
-    async def save_conversation(self, messages: List[ChatMessage], session_id: str = None) -> Result[None, str]:
+    async def save_conversation(self, messages: List[ChatMessage], session_id: Optional[str] = None) -> Result[None, str]:
         """Save conversation to repository using Conversation Service"""
         return await self.conversation_service.save_conversation(messages, session_id)
 
@@ -138,7 +139,10 @@ chat_agent_instance = ChatAgent()
 # Create Google ADK Agent with all microservice capabilities
 root_agent = Agent(
     name="microservices_chat_agent",
-    model="gemini-2.0-flash",
+    model=LiteLlm(
+        model="lm_studio/model:1",
+        api_base="http://127.0.0.1:1234/v1"
+    ),
     description="Advanced AI agent with Microservices Architecture, sophisticated ROP patterns, DI, Clean Architecture, and comprehensive city data services.",
     instruction="You are an advanced microservices-based agent who can answer complex questions about cities using sophisticated ROP patterns, multiple specialized services, and Clean Architecture principles. You have access to weather, time, city information, knowledge base, and conversation management services.",
     tools=[

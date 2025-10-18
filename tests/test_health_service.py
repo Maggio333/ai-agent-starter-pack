@@ -6,26 +6,24 @@ import os
 sys.path.append('.')
 
 import asyncio
-from application.container import ContainerManager
+from application.services.di_service import DIService
 
 async def test_health_service():
     print('🏥 Testing Health Service...')
     print('=' * 60)
     
-    # Initialize DI Container
-    container_manager = ContainerManager()
-    container = container_manager.container
+    # Initialize DI Service
+    di_service = DIService()
+    container = di_service.get_container()
     
     # Get services
-    embedding_service_result = container.embedding_service()
-    vector_db_service = container.vector_db_service()
-    health_service = container.health_service()
+    embedding_service = di_service.get_embedding_service()
+    vector_db_service = di_service.get_vector_db_service()
+    health_service = di_service.get_health_service()
     
-    if embedding_service_result.is_error:
-        print(f'❌ Failed to get embedding service: {embedding_service_result.error}')
+    if embedding_service is None:
+        print('❌ Failed to get embedding service')
         return
-    
-    embedding_service = embedding_service_result.value
     
     # Register services with health service
     print('📋 Registering services with health service...')

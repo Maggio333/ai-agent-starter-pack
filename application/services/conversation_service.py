@@ -5,8 +5,9 @@ from domain.utils.result import Result
 from domain.services.rop_service import ROPService
 from domain.entities.chat_message import ChatMessage, MessageRole
 from domain.repositories.chat_repository import ChatRepository
+from domain.services.IConversationService import IConversationService
 
-class ConversationService:
+class ConversationService(IConversationService):
     """Microservice for conversation management and chat operations"""
     
     def __init__(self, chat_repository: ChatRepository):
@@ -300,3 +301,16 @@ class ConversationService:
             
         except Exception as e:
             return Result.error(f"Failed to search conversations: {str(e)}")
+    
+    async def health_check(self) -> Result[Dict[str, Any], str]:
+        """Check service health"""
+        try:
+            health_data = {
+                'status': 'healthy',
+                'service': self.__class__.__name__,
+                'active_sessions': len(self._active_sessions),
+                'repository_available': self.chat_repository is not None
+            }
+            return Result.success(health_data)
+        except Exception as e:
+            return Result.error(f"Health check failed: {str(e)}")

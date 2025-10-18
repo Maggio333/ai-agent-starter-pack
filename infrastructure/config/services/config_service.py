@@ -3,9 +3,10 @@ import logging
 import os
 from typing import Dict, Any, Optional
 from domain.utils.result import Result
+from domain.services.IConfigService import IConfigService
 from ..environment.env_loader import EnvironmentLoader
 
-class ConfigService:
+class ConfigService(IConfigService):
     """Service for managing application configuration and service selection"""
     
     def __init__(self, env_file: str = ".env"):
@@ -55,7 +56,7 @@ class ConfigService:
     def get_llm_config(self) -> Dict[str, Any]:
         """Get LLM service configuration"""
         config = self.env_loader.get_config()
-        provider = os.getenv("LLM_PROVIDER", "google")
+        provider = os.getenv("LLM_PROVIDER", "lmstudio")
         budget_preference = os.getenv("BUDGET_PREFERENCE", "free")
         
         result = {
@@ -73,6 +74,11 @@ class ConfigService:
             result.update({
                 "api_key": config.api_keys.get("openai_api_key"),
                 "model": os.getenv("OPENAI_LLM_MODEL", "gpt-3.5-turbo")
+            })
+        elif provider == "lmstudio":
+            result.update({
+                "proxy_url": os.getenv("LMSTUDIO_LLM_PROXY_URL", "http://127.0.0.1:1234"),
+                "model_name": os.getenv("LMSTUDIO_LLM_MODEL_NAME", "model:1")
             })
         elif provider == "ollama":
             result.update({
@@ -274,8 +280,33 @@ class ConfigService:
                 "database_type": "postgresql"
             }
     
-    def reload_config(self):
+    def get_config(self, key: str, default: Any = None) -> Any:
+        """Get configuration value by key"""
+        return self._config_cache.get(key, default)
+    
+    def set_config(self, key: str, value: Any) -> None:
+        """Set configuration value by key"""
+        self._config_cache[key] = value
+    
+    def reload_config(self) -> Result[bool, str]:
         """Reload configuration from environment file"""
-        self.env_loader.reload()
-        self._config_cache.clear()
-        self.logger.info("Configuration reloaded")
+        try:
+            self.env_loader.reload()
+            self._config_cache.clear()
+            self.logger.info("Configuration reloaded")
+            return Result.success(True)
+        except Exception as e:
+            return Result.error(f"Failed to reload config: {str(e)}")
+    
+    async def health_check(self) -> Result[Dict[str, Any], str]:
+        """Check service health"""
+        try:
+            health_data = {
+                'status': 'healthy',
+                'service': self.__class__.__name__,
+                'config_cache_size': len(self._config_cache),
+                'environment_loaded': self.env_loader is not None
+            }
+            return Result.success(health_data)
+        except Exception as e:
+            return Result.error(f"Health check failed: {str(e)}")

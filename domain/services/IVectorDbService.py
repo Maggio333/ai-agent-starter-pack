@@ -4,7 +4,7 @@ from typing import List, AsyncIterator
 from domain.entities.rag_chunk import RAGChunk
 from domain.utils.result import Result
 
-class VectorDbService(ABC):
+class IVectorDbService(ABC):  # Interfejs zgodny z konwencją C# dla czytelności
     """Vector database service interface"""
     
     @abstractmethod

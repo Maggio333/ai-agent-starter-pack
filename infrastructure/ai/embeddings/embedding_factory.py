@@ -2,7 +2,7 @@
 import logging
 from typing import Optional, Dict, Any
 from domain.utils.result import Result
-from .base_embedding_service import BaseEmbeddingService
+from .IEmbeddingService import IEmbeddingService
 from .huggingface_embedding_service import HuggingFaceEmbeddingService
 from .google_embedding_service import GoogleEmbeddingService
 from .openai_embedding_service import OpenAIEmbeddingService
@@ -22,9 +22,9 @@ class EmbeddingFactory:
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self._services: Dict[str, BaseEmbeddingService] = {}
+        self._services: Dict[str, IEmbeddingService] = {}
     
-    def create_service(self, provider: str, **kwargs) -> Result[BaseEmbeddingService, str]:
+    def create_service(self, provider: str, **kwargs) -> Result[IEmbeddingService, str]:
         """
         Creates an embedding service based on the provider.
         
@@ -33,7 +33,7 @@ class EmbeddingFactory:
             **kwargs: Additional configuration parameters
             
         Returns:
-            Result[BaseEmbeddingService, str]: The created service or error
+            Result[IEmbeddingService, str]: The created service or error
         """
         try:
             if provider == EmbeddingProvider.HUGGINGFACE:
@@ -81,7 +81,7 @@ class EmbeddingFactory:
             self.logger.error(f"Failed to create embedding service for provider {provider}: {e}")
             return Result.error(f"Failed to create embedding service: {str(e)}")
     
-    def get_service(self, provider: str) -> Optional[BaseEmbeddingService]:
+    def get_service(self, provider: str) -> Optional[IEmbeddingService]:
         """Get a cached service by provider"""
         return self._services.get(provider)
     

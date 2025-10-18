@@ -44,11 +44,11 @@ class TestKnowledgeService:
     @pytest.mark.asyncio
     async def test_search_knowledge_base_long_query(self, knowledge_service):
         """Test knowledge base search with very long query"""
-        long_query = "A" * 600  # Over 500 character limit
+        long_query = "A" * 2500  # Over 2000 character limit
         result = await knowledge_service.search_knowledge_base(long_query)
         
         assert result.is_error
-        assert "Query must be between 1 and 500 characters" in result.error
+        assert "Query must be between 1 and 2000 characters" in result.error
     
     @pytest.mark.asyncio
     async def test_search_knowledge_base_no_results(self, knowledge_service):

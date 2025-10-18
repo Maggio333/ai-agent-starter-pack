@@ -19,7 +19,7 @@ from typing import List, Dict, Any
 sys.path.append('.')
 
 # Import all major components
-from application.container import ContainerManager
+from application.services.di_service import DIService
 from domain.entities.chat_message import ChatMessage, MessageRole
 from domain.entities.rag_chunk import RAGChunk
 from domain.entities.quality_level import QualityLevel
@@ -29,8 +29,8 @@ class FunctionalTestSuite:
     """Comprehensive functional test suite"""
     
     def __init__(self):
-        self.container_manager = ContainerManager()
-        self.container = self.container_manager.container
+        self.di_service = DIService()
+        self.container = self.di_service.get_container()
         self.test_results = []
         self.passed_tests = 0
         self.failed_tests = 0
@@ -59,12 +59,12 @@ class FunctionalTestSuite:
             assert self.container is not None, "Container should be initialized"
             
             # Test service status
-            status = self.container_manager.get_service_status()
+            status = self.di_service.get_service_status()
             assert isinstance(status, dict), "Service status should be a dictionary"
             
             # Test configuration
-            config = self.container_manager.get_configuration_summary()
-            assert isinstance(config, dict), "Configuration should be a dictionary"
+            config_service = self.di_service.get_config_service()
+            assert config_service is not None, "Config service should be available"
             
             self.log_test_result("DI Container Initialization", True, f"Services: {len(status)}")
             return True
@@ -77,10 +77,8 @@ class FunctionalTestSuite:
         """Test all embedding services"""
         try:
             # Test embedding service creation
-            embedding_result = self.container.embedding_service()
-            assert embedding_result.is_success, f"Embedding service creation failed: {embedding_result.error}"
-            
-            embedding_service = embedding_result.value
+            embedding_service = self.di_service.get_embedding_service()
+            assert embedding_service is not None, "Embedding service should be available"
             
             # Test embedding creation
             test_text = "This is a test text for embedding"
@@ -110,7 +108,7 @@ class FunctionalTestSuite:
         """Test vector database services"""
         try:
             # Test vector DB service creation
-            vector_db_service = self.container.vector_db_service()
+            vector_db_service = self.di_service.get_vector_db_service()
             assert vector_db_service is not None, "Vector DB service should be initialized"
             
             # Test collection creation
@@ -162,7 +160,7 @@ class FunctionalTestSuite:
         """Test chat repository services"""
         try:
             # Test chat repository creation
-            chat_repository = self.container.chat_repository()
+            chat_repository = self.di_service.get_chat_repository()
             assert chat_repository is not None, "Chat repository should be initialized"
             
             # Test message creation
@@ -203,27 +201,27 @@ class FunctionalTestSuite:
         """Test application services"""
         try:
             # Test city service
-            city_service = self.container.city_service()
+            city_service = self.di_service.get_city_service()
             assert city_service is not None, "City service should be initialized"
             
             # Test time service
-            time_service = self.container.time_service()
+            time_service = self.di_service.get_time_service()
             assert time_service is not None, "Time service should be initialized"
             
             # Test weather service
-            weather_service = self.container.weather_service()
+            weather_service = self.di_service.get_weather_service()
             assert weather_service is not None, "Weather service should be initialized"
             
             # Test knowledge service
-            knowledge_service = self.container.knowledge_service()
+            knowledge_service = self.di_service.get_knowledge_service()
             assert knowledge_service is not None, "Knowledge service should be initialized"
             
             # Test conversation service
-            conversation_service = self.container.conversation_service()
+            conversation_service = self.di_service.get_conversation_service()
             assert conversation_service is not None, "Conversation service should be initialized"
             
             # Test orchestration service
-            orchestration_service = self.container.orchestration_service()
+            orchestration_service = self.di_service.get_orchestration_service()
             assert orchestration_service is not None, "Orchestration service should be initialized"
             
             self.log_test_result("Application Services", True, "All 7 services initialized")
@@ -237,7 +235,7 @@ class FunctionalTestSuite:
         """Test health monitoring services"""
         try:
             # Test health service
-            health_service = self.container.health_service()
+            health_service = self.di_service.get_health_service()
             assert health_service is not None, "Health service should be initialized"
             
             # Test overall health check
@@ -266,7 +264,7 @@ class FunctionalTestSuite:
         """Test configuration services"""
         try:
             # Test config service
-            config_service = self.container.config_service()
+            config_service = self.di_service.get_config_service()
             assert config_service is not None, "Config service should be initialized"
             
             # Test embedding configuration
@@ -293,7 +291,7 @@ class FunctionalTestSuite:
         """Test cache services"""
         try:
             # Test cache service
-            cache_service = self.container.cache_service()
+            cache_service = self.di_service.get_cache_service()
             assert cache_service is not None, "Cache service should be initialized"
             
             # Test cache operations
@@ -326,7 +324,7 @@ class FunctionalTestSuite:
         """Test search services"""
         try:
             # Test search service
-            search_service_result = self.container.search_service()
+            search_service_result = self.di_service.get_search_service()
             assert search_service_result.is_success, f"Search service creation failed: {search_service_result.error}"
             search_service = search_service_result.value
             
@@ -361,10 +359,10 @@ class FunctionalTestSuite:
         """Test complete end-to-end workflow"""
         try:
             # Get services
-            embedding_service = self.container.embedding_service().value
-            vector_db_service = self.container.vector_db_service()
-            chat_repository = self.container.chat_repository()
-            orchestration_service = self.container.orchestration_service()
+            embedding_service = self.di_service.get_embedding_service()
+            vector_db_service = self.di_service.get_vector_db_service()
+            chat_repository = self.di_service.get_chat_repository()
+            orchestration_service = self.di_service.get_orchestration_service()
             
             # Step 1: Create a chat message
             test_message = ChatMessage(

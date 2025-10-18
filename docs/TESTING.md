@@ -39,7 +39,7 @@ tests/
 ├── test_sqlite_microservices.py # SQLite microservices tests
 ├── check_collection.py        # Qdrant collection inspection
 ├── get_adaptive_trace.py      # Idiom pattern retrieval
-├── search_mathematical_idioms.py # Mathematical idiom search
+├── test_vector_database_search.py # Vector database search tests
 ├── search_specific_terms.py   # Specific term search
 └── universal_search.py        # Universal search testing
 ```

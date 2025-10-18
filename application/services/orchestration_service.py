@@ -4,24 +4,26 @@ from datetime import datetime
 from domain.utils.result import Result
 from domain.services.rop_service import ROPService
 from domain.entities.chat_message import ChatMessage, MessageRole
+from domain.services.IOrchestrationService import IOrchestrationService
 from .weather_service import WeatherService
 from .time_service import TimeService
 from .city_service import CityService
 from .knowledge_service import KnowledgeService
 from .conversation_service import ConversationService
 
-class OrchestrationService:
+
+class OrchestrationService(IOrchestrationService):
     """Microservice orchestrator that coordinates all other services"""
     
-    def __init__(self, conversation_service: ConversationService):
+    def __init__(self, conversation_service: ConversationService, vector_db_service = None):
         self.rop_service = ROPService()
         self.conversation_service = conversation_service
         
-        # Initialize all microservices
+        
         self.weather_service = WeatherService()
         self.time_service = TimeService()
         self.city_service = CityService()
-        self.knowledge_service = KnowledgeService()
+        self.knowledge_service = KnowledgeService(vector_db_service)
         
         # Service registry for easy access
         self._services = {
@@ -370,3 +372,16 @@ class OrchestrationService:
     def list_services(self) -> List[str]:
         """List all available services"""
         return list(self._services.keys())
+    
+    async def health_check(self) -> Result[Dict[str, Any], str]:
+        """Check service health"""
+        try:
+            health_data = {
+                'status': 'healthy',
+                'service': self.__class__.__name__,
+                'services_count': len(self._services),
+                'available_services': list(self._services.keys())
+            }
+            return Result.success(health_data)
+        except Exception as e:
+            return Result.error(f"Health check failed: {str(e)}")

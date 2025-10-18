@@ -683,5 +683,5 @@
 
 **Co dalej?** 🤔
 1. **Wrzucić na Git** - projekt jest gotowy
-2. **Dodać idiomy jako Pro wersję** - zaawansowane funkcje
+2. **Dodać zaawansowane funkcje** - rozszerzone możliwości
 3. **Przygotować prezentację** - dla szkolenia Google/Bielik

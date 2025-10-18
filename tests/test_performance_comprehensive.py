@@ -21,7 +21,7 @@ from typing import List, Dict, Any
 sys.path.append('.')
 
 # Import all major components
-from application.container import ContainerManager
+from application.services.di_service import DIService
 from domain.entities.chat_message import ChatMessage, MessageRole
 from domain.entities.rag_chunk import RAGChunk
 from domain.entities.quality_level import QualityLevel
@@ -30,8 +30,8 @@ class PerformanceTestSuite:
     """Performance test suite"""
     
     def __init__(self):
-        self.container_manager = ContainerManager()
-        self.container = self.container_manager.container
+        self.di_service = DIService()
+        self.container = self.di_service.get_container()
         self.test_results = []
         self.performance_metrics = {}
         
@@ -56,7 +56,7 @@ class PerformanceTestSuite:
             start_time = time.time()
             
             # Get embedding service
-            embedding_result = self.container.embedding_service()
+            embedding_service = self.di_service.get_embedding_service()
             if embedding_result.is_error:
                 self.log_performance_result("Embedding Performance", 0, False, "Service creation failed")
                 return False
@@ -108,7 +108,7 @@ class PerformanceTestSuite:
             start_time = time.time()
             
             # Get vector DB service
-            vector_db_service = self.container.vector_db_service()
+            vector_db_service = self.di_service.get_vector_db_service()
             
             # Test collection creation
             collection_name = "perf_test_collection"
@@ -181,7 +181,7 @@ class PerformanceTestSuite:
             start_time = time.time()
             
             # Get chat repository
-            chat_repository = self.container.chat_repository()
+            chat_repository = self.di_service.get_chat_repository()
             
             # Test bulk message operations
             test_messages = [
@@ -249,7 +249,7 @@ class PerformanceTestSuite:
             start_time = time.time()
             
             # Get cache service
-            cache_service = self.container.cache_service()
+            cache_service = self.di_service.get_cache_service()
             
             # Test bulk cache operations
             cache_operations = 100
@@ -303,7 +303,7 @@ class PerformanceTestSuite:
             start_time = time.time()
             
             # Get search service
-            search_service = self.container.search_service()
+            search_service = self.di_service.get_search_service()
             
             # Test bulk document indexing
             documents = [
@@ -358,8 +358,8 @@ class PerformanceTestSuite:
             initial_memory = process.memory_info().rss / 1024 / 1024  # MB
             
             # Perform memory-intensive operations
-            embedding_service = self.container.embedding_service().value
-            vector_db_service = self.container.vector_db_service()
+            embedding_service = self.di_service.get_embedding_service()
+            vector_db_service = self.di_service.get_vector_db_service()
             
             # Create many embeddings
             texts = [f"Memory test text {i}" for i in range(100)]
@@ -417,8 +417,8 @@ class PerformanceTestSuite:
             start_time = time.time()
             
             # Get services
-            embedding_service = self.container.embedding_service().value
-            cache_service = self.container.cache_service()
+            embedding_service = self.di_service.get_embedding_service()
+            cache_service = self.di_service.get_cache_service()
             
             # Test concurrent operations
             async def concurrent_embedding_task(task_id: int):

@@ -1,6 +1,6 @@
 # infrastructure/llm/google_vertex_service.py
 from typing import List, AsyncIterator, Dict, Any, Optional
-from domain.services.llm_service import LLMService
+from domain.services.ILLMService import ILLMService
 from domain.entities.chat_message import ChatMessage
 from domain.utils.result import Result
 
@@ -15,7 +15,7 @@ from .google_vertex.monitoring_service import MonitoringService
 from .google_vertex.caching_service import CachingService
 from .google_vertex.rate_limiting_service import RateLimitingService
 
-class GoogleVertexService(LLMService):
+class GoogleVertexService(ILLMService):
     """Google Vertex AI implementation of LLMService using Facade pattern"""
     
     def __init__(self, api_key: str, model: str = "gemini-2.0-flash"):

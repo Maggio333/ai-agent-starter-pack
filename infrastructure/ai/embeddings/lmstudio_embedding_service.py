@@ -3,9 +3,9 @@ import httpx
 import logging
 from typing import List, Dict, Any, Optional
 from domain.utils.result import Result
-from .base_embedding_service import BaseEmbeddingService
+from .IEmbeddingService import IEmbeddingService
 
-class LMStudioEmbeddingService(BaseEmbeddingService):
+class LMStudioEmbeddingService(IEmbeddingService):
     """LM Studio embedding service via proxy"""
     
     def __init__(self, proxy_url: str = "http://127.0.0.1:8123", model_name: str = "model:10"):
@@ -42,7 +42,9 @@ class LMStudioEmbeddingService(BaseEmbeddingService):
     
     async def _create_embedding_single(self, text: str) -> Result[List[float], str]:
         """Create embedding for single text"""
-        self.logger.info(f"Creating embedding with LM Studio: '{text[:50]}...'")
+        safe_text = text[:50].encode('utf-8', errors='ignore').decode('utf-8')
+        self.logger.info(f"LMStudioEmbeddingService - Creating embedding with LM Studio: '{safe_text}...'")
+        print(f"DEBUG: LMStudioEmbeddingService - Creating embedding with LM Studio: '{safe_text}...'")
         
         if not text or not text.strip():
             return Result.error("Text cannot be empty")
@@ -56,21 +58,33 @@ class LMStudioEmbeddingService(BaseEmbeddingService):
                     "input": text
                 }
                 
+                self.logger.info(f"LMStudioEmbeddingService - Sending request to: {url}")
+                print(f"DEBUG: LMStudioEmbeddingService - Sending request to: {url}")
+                print(f"DEBUG: LMStudioEmbeddingService - Request body: model={self.model_name}, input='{safe_text}...'")
+                
                 response = await client.post(url, json=request_body)
                 
                 if response.status_code == 200:
                     data = response.json()
+                    self.logger.info(f"LMStudioEmbeddingService - Response received: {response.status_code}")
+                    print(f"DEBUG: LMStudioEmbeddingService - Response received: {response.status_code}")
                     
                     if 'data' in data and len(data['data']) > 0:
                         embedding = data['data'][0]['embedding']
-                        self.logger.info(f"Embedding created successfully, dimension: {len(embedding)}")
+                        self.logger.info(f"LMStudioEmbeddingService - Embedding created successfully, dimension: {len(embedding)}")
+                        print(f"DEBUG: LMStudioEmbeddingService - Embedding created successfully, dimension: {len(embedding)}")
                         return Result.success(embedding)
                     else:
-                        return Result.error("No embedding data in response")
+                        error_msg = "No embedding data in response"
+                        self.logger.error(f"LMStudioEmbeddingService - {error_msg}")
+                        print(f"DEBUG: LMStudioEmbeddingService - {error_msg}")
+                        return Result.error(error_msg)
                 else:
                     error_msg = f"LM Studio API error: {response.status_code} - {response.text}"
-                    self.logger.error(error_msg)
-                    return Result.error(error_msg)
+                    safe_error_msg = error_msg.encode('utf-8', errors='ignore').decode('utf-8')
+                    self.logger.error(f"LMStudioEmbeddingService - {safe_error_msg}")
+                    print(f"DEBUG: LMStudioEmbeddingService - {safe_error_msg}")
+                    return Result.error(safe_error_msg)
                     
         except httpx.TimeoutException:
             error_msg = "LM Studio API timeout"

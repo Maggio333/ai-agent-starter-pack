@@ -1,5 +1,5 @@
 # infrastructure/ai/embeddings/__init__.py
-from .base_embedding_service import BaseEmbeddingService
+from .IEmbeddingService import IEmbeddingService
 from .google_embedding_service import GoogleEmbeddingService
 from .openai_embedding_service import OpenAIEmbeddingService
 from .local_embedding_service import LocalEmbeddingService
@@ -8,7 +8,7 @@ from .embedding_service import EmbeddingService
 from .embedding_factory import EmbeddingFactory, EmbeddingProvider, embedding_factory
 
 __all__ = [
-    "BaseEmbeddingService",
+    "IEmbeddingService",
     "GoogleEmbeddingService", 
     "OpenAIEmbeddingService",
     "LocalEmbeddingService",

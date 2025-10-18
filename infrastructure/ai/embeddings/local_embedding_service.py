@@ -3,7 +3,7 @@ import logging
 import os
 from typing import List, Dict, Any
 from domain.utils.result import Result
-from .base_embedding_service import BaseEmbeddingService
+from .IEmbeddingService import IEmbeddingService
 
 try:
     import torch
@@ -14,7 +14,7 @@ except ImportError:
     AutoModel = None
     logging.warning("PyTorch and Transformers not installed. LocalEmbeddingService will not be available.")
 
-class LocalEmbeddingService(BaseEmbeddingService):
+class LocalEmbeddingService(IEmbeddingService):
     """
     Local implementation of BaseEmbeddingService using custom models.
     This service uses local models and is free to use.

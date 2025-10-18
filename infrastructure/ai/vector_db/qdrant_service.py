@@ -1,19 +1,20 @@
 # infrastructure/ai/vector_db/qdrant_service.py
 import logging
 from typing import List, Optional, AsyncIterator
-from domain.services.vector_db_service import VectorDbService
+from domain.services.IVectorDbService import IVectorDbService
 from domain.entities.rag_chunk import RAGChunk
 from domain.utils.result import Result
 from .qdrant.collection_service import CollectionService
 from .qdrant.embedding_service import EmbeddingService
 from .qdrant.search_service import SearchService
 from .qdrant.monitoring_service import MonitoringService
-from ..embeddings.base_embedding_service import BaseEmbeddingService
+from ..embeddings.IEmbeddingService import IEmbeddingService
+from domain.services.ITextCleanerService import ITextCleanerService
 
-class QdrantService(VectorDbService):
+class QdrantService(IVectorDbService):
     """Qdrant implementation of VectorDbService using microservices architecture"""
     
-    def __init__(self, url: str = "http://localhost:6333", collection_name: str = "chat_collection", api_key: Optional[str] = None, embedding_service: Optional[BaseEmbeddingService] = None):
+    def __init__(self, url: str = "http://localhost:6333", collection_name: str = "chat_collection", api_key: Optional[str] = None, embedding_service: Optional[IEmbeddingService] = None, text_cleaner_service: Optional[ITextCleanerService] = None):
         self.url = url
         self.collection_name = collection_name
         self.vector_size = 1024  # Match C# VectorSize
@@ -22,7 +23,7 @@ class QdrantService(VectorDbService):
         # Initialize microservices
         self.collection_service = CollectionService(url, api_key)
         self.embedding_service = EmbeddingService(url, api_key)
-        self.search_service = SearchService(url, api_key)
+        self.search_service = SearchService(url, api_key, text_cleaner_service)
         self.monitoring_service = MonitoringService(url, api_key)
         
         # Store embedding service for real embeddings
@@ -132,7 +133,19 @@ class QdrantService(VectorDbService):
     # Search Operations - delegated to SearchService
     async def search(self, query: str, limit: int = 5) -> Result[List[RAGChunk], str]:
         """Search vector database"""
-        return await self.search_service.search_by_text(self.collection_name, query, limit, vector_size=self.vector_size)
+        self.logger.info(f"QdrantService - Starting search for: '{query}' with limit: {limit}")
+        print(f"DEBUG: QdrantService - Starting search for: '{query}' with limit: {limit}")
+        
+        result = await self.search_service.search_by_text(self.collection_name, query, limit, vector_size=self.vector_size, embedding_service=self.embedding_service_provider)
+        
+        if result.is_success:
+            self.logger.info(f"QdrantService - Search successful, found {len(result.value)} chunks")
+            print(f"DEBUG: QdrantService - Search successful, found {len(result.value)} chunks")
+        else:
+            self.logger.error(f"QdrantService - Search failed: {result.error}")
+            print(f"DEBUG: QdrantService - Search failed: {result.error}")
+        
+        return result
     
     async def stream_search(self, query: str, limit: int = 5) -> AsyncIterator[Result[RAGChunk, str]]:
         """Stream search results"""

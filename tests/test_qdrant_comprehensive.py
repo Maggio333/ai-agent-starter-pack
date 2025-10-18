@@ -130,7 +130,7 @@ class TestQdrantService:
         )
         
         # Test search
-        result = await service_1024.search('idiom', limit=2)
+        result = await service_1024.search('test', limit=2)
         
         if result.is_success:
             print(f'✅ 1024 vector search successful, found {len(result.value)} results')
@@ -143,21 +143,16 @@ class TestQdrantService:
         """Test handling of different payload structures"""
         print('🧪 Testing payload structure handling...')
         
-        # Test with your existing collection that has Polish structure
-        service_polish = QdrantService(
-            url='http://localhost:6333', 
-            collection_name='PierwszaKolekcjaOnline'
-        )
-        
-        result = await service_polish.search('Eliora', limit=2)
+        # Test with generic collection
+        result = await qdrant_service.search('test', limit=2)
         
         if result.is_success:
-            print(f'✅ Polish payload handling successful, found {len(result.value)} results')
+            print(f'✅ Payload handling successful, found {len(result.value)} results')
             for i, chunk in enumerate(result.value):
                 print(f'  {i+1}. Score: {chunk.score:.6f}')
                 print(f'      Text: {chunk.text_chunk[:100]}...')
         else:
-            print(f'❌ Polish payload handling failed: {result.error}')
+            print(f'❌ Payload handling failed: {result.error}')
 
 async def run_comprehensive_tests():
     """Run all comprehensive tests"""

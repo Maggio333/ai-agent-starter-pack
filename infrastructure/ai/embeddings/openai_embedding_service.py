@@ -2,9 +2,9 @@
 import httpx
 from typing import List, Dict, Any, Optional
 from domain.utils.result import Result
-from .base_embedding_service import BaseEmbeddingService
+from .IEmbeddingService import IEmbeddingService
 
-class OpenAIEmbeddingService(BaseEmbeddingService):
+class OpenAIEmbeddingService(IEmbeddingService):
     """OpenAI embedding service"""
     
     def __init__(self, api_key: str, model_name: str = "text-embedding-ada-002"):

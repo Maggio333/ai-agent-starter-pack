@@ -1,9 +1,10 @@
 # services/weather_service.py
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from domain.utils.result import Result
 from domain.services.rop_service import ROPService
+from domain.services.IWeatherService import IWeatherService
 
-class WeatherService:
+class WeatherService(IWeatherService):
     """Microservice for weather-related operations"""
     
     def __init__(self):
@@ -172,3 +173,16 @@ class WeatherService:
             return Result.success(is_supported)
         except Exception as e:
             return Result.error(f"Failed to check city support: {str(e)}")
+    
+    async def health_check(self) -> Result[Dict[str, Any], str]:
+        """Check service health"""
+        try:
+            health_data = {
+                'status': 'healthy',
+                'service': self.__class__.__name__,
+                'cities_count': len(self._weather_data),
+                'supported_cities': list(self._weather_data.keys())[:5]  # First 5 cities
+            }
+            return Result.success(health_data)
+        except Exception as e:
+            return Result.error(f"Health check failed: {str(e)}")

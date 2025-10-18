@@ -1,5 +1,5 @@
 # infrastructure/ai/vector_db/qdrant/__init__.py
-from .base_qdrant_service import BaseQdrantService
+from .BaseQdrantService import BaseQdrantService
 from .collection_service import CollectionService
 from .embedding_service import EmbeddingService
 from .search_service import SearchService

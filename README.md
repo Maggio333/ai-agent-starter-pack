@@ -6,6 +6,41 @@ A comprehensive, production-ready AI agent framework built with Clean Architectu
 **License**: MIT with Attribution Requirement  
 **Year**: 2025
 
+## 🆕 **Latest Updates (v2.0)**
+
+### ✅ **C#-Style Interface Architecture**
+- **All services now use C#-style interfaces with `I` prefix**
+- **Full interface consistency across the entire codebase**
+- **Enhanced Dependency Injection with auto-discovery**
+- **Unicode support and extended character limits (2000 chars)**
+
+### 🎯 **Interface Naming Convention**
+```python
+# Before (Python style)
+class LLMService(ABC):
+    pass
+
+# After (C# style) 
+class ILLMService(ABC):
+    pass
+```
+
+### 📋 **Complete Interface List**
+- `ILLMService` - Language Model operations
+- `IVectorDbService` - Vector database operations  
+- `IEmbeddingService` - Text embedding operations
+- `IHealthService` - Health monitoring
+- `ITextCleanerService` - Text cleaning utilities
+- `IEmailService` - Email operations
+- `ICityService` - City information
+- `IWeatherService` - Weather data
+- `ITimeService` - Time operations
+- `IKnowledgeService` - Knowledge base
+- `IConversationService` - Chat management
+- `IOrchestrationService` - Service coordination
+- `IDIService` - Dependency Injection
+- `IConfigService` - Configuration management
+
 ## 🏗️ Architecture Overview
 
 ```
@@ -20,17 +55,19 @@ A comprehensive, production-ready AI agent framework built with Clean Architectu
 ├─────────────────────────────────────────────────────────────────┤
 │  DI Container      │  DTOs            │  Application Services   │
 │  - Container       │  - Request/Resp  │  - Orchestration       │
-│  - ContainerMgr    │  - Validation    │  - Business Logic      │
+│  - DIService       │  - Validation    │  - Business Logic      │
+│  - Auto-Discovery  │  - Mapping       │  - Use Cases          │
 └─────────────────────────────────────────────────────────────────┘
                                 │
 ┌─────────────────────────────────────────────────────────────────┐
 │                          DOMAIN LAYER                           │
 ├─────────────────────────────────────────────────────────────────┤
-│  Entities          │  Services        │  Repositories          │
-│  - ChatMessage     │  - LLMService     │  - ChatRepository      │
-│  - RAGChunk        │  - VectorDbSvc   │  - VectorDbRepo        │
-│  - QualityLevel    │  - ROPService     │  - EmbeddingRepo       │
-│  - Metadata        │  - ConfigService  │  - CacheRepo           │
+│  Entities          │  Interfaces (I*) │  Repositories          │
+│  - ChatMessage     │  - ILLMService    │  - ChatRepository      │
+│  - RAGChunk        │  - IVectorDbSvc   │  - VectorDbRepo        │
+│  - QualityLevel    │  - IEmbeddingSvc  │  - EmbeddingRepo       │
+│  - Metadata        │  - IHealthService │  - CacheRepo           │
+│  - Result<T,E>     │  - I*Service      │  - SearchRepo          │
 └─────────────────────────────────────────────────────────────────┘
                                 │
 ┌─────────────────────────────────────────────────────────────────┐
@@ -41,6 +78,7 @@ A comprehensive, production-ready AI agent framework built with Clean Architectu
 │  - Vector DB       │  - Cache          │  - Qdrant             │
 │  - LLM             │  - Search         │  - OpenAI             │
 │  - Monitoring      │  - Storage         │  - HuggingFace        │
+│  - Text Cleaning   │  - Email          │  - LM Studio          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

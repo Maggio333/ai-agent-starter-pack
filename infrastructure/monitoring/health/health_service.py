@@ -3,19 +3,19 @@ import logging
 from typing import Dict, Any, List
 from datetime import datetime
 from domain.utils.result import Result
-from .base_health_service import BaseHealthService, HealthCheck, HealthStatus
+from .IHealthService import IHealthService, HealthCheck, HealthStatus
 from .embedding_health_service import EmbeddingHealthService
 from .qdrant_health_service import QdrantHealthService
 
-class HealthService(BaseHealthService):
+class HealthService(IHealthService):
     """Main health service that coordinates all health checks"""
     
     def __init__(self):
         super().__init__("SystemHealth")
         self.logger = logging.getLogger(__name__)
-        self._health_services: List[BaseHealthService] = []
+        self._health_services: List[IHealthService] = []
     
-    def register_service(self, health_service: BaseHealthService) -> None:
+    def register_service(self, health_service: IHealthService) -> None:
         """Register a health service"""
         self._health_services.append(health_service)
         self.logger.info(f"Registered health service: {health_service.service_name}")

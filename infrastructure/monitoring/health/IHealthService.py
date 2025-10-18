@@ -1,4 +1,4 @@
-# infrastructure/monitoring/health/base_health_service.py
+# infrastructure/monitoring/health/IHealthService.py
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List
 from dataclasses import dataclass
@@ -7,7 +7,7 @@ from enum import Enum
 from domain.utils.result import Result
 
 class HealthStatus(Enum):
-    """Health status enumeration"""
+    """Status zdrowia serwisu"""
     HEALTHY = "healthy"
     UNHEALTHY = "unhealthy"
     DEGRADED = "degraded"
@@ -15,7 +15,7 @@ class HealthStatus(Enum):
 
 @dataclass
 class HealthCheck:
-    """Health check result"""
+    """Wynik sprawdzenia zdrowia serwisu"""
     service_name: str
     status: HealthStatus
     message: str
@@ -27,19 +27,19 @@ class HealthCheck:
         if self.details is None:
             self.details = {}
 
-class BaseHealthService(ABC):
-    """Abstract base class for health services"""
+class IHealthService(ABC):  # Interfejs zgodny z konwencją C# dla czytelności
+    """Abstrakcyjny interfejs serwisu monitorowania zdrowia"""
     
     def __init__(self, service_name: str):
         self.service_name = service_name
     
     @abstractmethod
     async def check_health(self) -> Result[HealthCheck, str]:
-        """Check service health"""
+        """Sprawdza stan zdrowia serwisu"""
         pass
     
     async def get_service_info(self) -> Dict[str, Any]:
-        """Get service information"""
+        """Zwraca informacje o serwisie"""
         return {
             "service_name": self.service_name,
             "type": self.__class__.__name__,
