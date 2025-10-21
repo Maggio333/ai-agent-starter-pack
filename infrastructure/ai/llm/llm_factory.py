@@ -26,7 +26,7 @@ class LLMFactory:
         
         elif provider == LLMProvider.LMSTUDIO:
             return LMStudioLLMService(
-                proxy_url=kwargs.get("proxy_url", "http://127.0.0.1:1234"),
+                proxy_url=kwargs.get("proxy_url", "http://127.0.0.1:8123"),
                 model_name=kwargs.get("model_name", "model:1")
             )
         

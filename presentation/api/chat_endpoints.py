@@ -1,4 +1,6 @@
-# presentation/api/chat_endpoints.py
+"""
+Chat API Endpoints - FastAPI routes for chat operations
+"""
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -28,16 +30,17 @@ def get_di_service() -> DIService:
     return DIService()
 
 def get_conversation_service(di_service: DIService = Depends(get_di_service)) -> ConversationService:
-    """Get conversation service from DI service"""
+    """Get conversation service instance"""
     return di_service.get_conversation_service()
 
 def get_orchestration_service(di_service: DIService = Depends(get_di_service)) -> OrchestrationService:
-    """Get orchestration service from DI service"""
+    """Get orchestration service instance"""
     return di_service.get_orchestration_service()
 
 def get_health_service(di_service: DIService = Depends(get_di_service)) -> HealthService:
-    """Get health service from DI service"""
+    """Get health service instance"""
     return di_service.get_health_service()
+
 
 # Session Management Endpoints
 @router.post("/sessions", response_model=SessionResponse)
@@ -71,6 +74,7 @@ async def create_session(
         logger.error(f"Failed to create session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/sessions/{session_id}", response_model=SessionResponse)
 async def get_session(
     session_id: str,
@@ -89,95 +93,71 @@ async def get_session(
         logger.error(f"Failed to get session {session_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/sessions/{session_id}/history", response_model=ConversationHistoryResponse)
-async def get_conversation_history(
+async def get_session_history(
     session_id: str,
     limit: int = 50,
     conversation_service: ConversationService = Depends(get_conversation_service)
 ):
-    """Get conversation history for a session"""
+    """Get session conversation history"""
     try:
         result = await conversation_service.get_conversation_history(session_id, limit)
         if result.is_error:
             raise HTTPException(status_code=404, detail=result.error)
         
-        messages = result.value
-        message_responses = [
-            ChatMessageResponse(
-                message_id=msg.message_id or "",
-                content=msg.content,
-                role=msg.role.value,
-                timestamp=msg.timestamp.isoformat(),
-                thread_id=msg.thread_id,
-                parent_message_id=msg.parent_message_id,
-                metadata=msg.get_metadata().to_dict() if hasattr(msg, 'get_metadata') else None
-            )
-            for msg in messages
-        ]
-        
+        history = result.value
         return ConversationHistoryResponse(
             session_id=session_id,
-            messages=message_responses,
-            total_count=len(message_responses)
+            messages=history,
+            total_messages=len(history)
         )
         
     except Exception as e:
-        logger.error(f"Failed to get conversation history for {session_id}: {e}")
+        logger.error(f"Failed to get session history {session_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/sessions/active", response_model=ActiveSessionsResponse)
 async def get_active_sessions(
     conversation_service: ConversationService = Depends(get_conversation_service)
 ):
-    """Get list of active sessions"""
+    """Get all active sessions"""
     try:
         result = await conversation_service.get_active_sessions()
         if result.is_error:
             raise HTTPException(status_code=500, detail=result.error)
         
         sessions = result.value
-        session_responses = [
-            SessionResponse(
-                session_id=session["session_id"],
-                status=session.get("status", "active"),
-                started_at=session["started_at"],
-                last_activity=session["last_activity"],
-                message_count=session["message_count"],
-                context=session.get("context")
-            )
-            for session in sessions
-        ]
-        
         return ActiveSessionsResponse(
-            sessions=session_responses,
-            total_count=len(session_responses)
+            sessions=sessions,
+            total_active=len(sessions)
         )
         
     except Exception as e:
         logger.error(f"Failed to get active sessions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.delete("/sessions/{session_id}", response_model=SuccessResponse)
-async def end_session(
+async def delete_session(
     session_id: str,
     conversation_service: ConversationService = Depends(get_conversation_service)
 ):
-    """End a conversation session"""
+    """Delete a session"""
     try:
         result = await conversation_service.end_conversation(session_id)
         if result.is_error:
             raise HTTPException(status_code=404, detail=result.error)
         
-        return SuccessResponse(
-            message=f"Session {session_id} ended successfully",
-            timestamp=datetime.now().isoformat()
-        )
+        return SuccessResponse(message=f"Session {session_id} deleted successfully")
         
     except Exception as e:
-        logger.error(f"Failed to end session {session_id}: {e}")
+        logger.error(f"Failed to delete session {session_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Statistics Endpoints
+
+# Statistics and Health Endpoints
 @router.get("/stats", response_model=ConversationStatsResponse)
 async def get_conversation_stats(
     conversation_service: ConversationService = Depends(get_conversation_service)
@@ -195,9 +175,9 @@ async def get_conversation_stats(
         logger.error(f"Failed to get conversation stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Health Check Endpoints
+
 @router.get("/health", response_model=OverallHealthResponse)
-async def get_system_health(
+async def get_overall_health(
     health_service: HealthService = Depends(get_health_service)
 ):
     """Get overall system health"""
@@ -207,31 +187,12 @@ async def get_system_health(
             raise HTTPException(status_code=500, detail=result.error)
         
         health_data = result.value
-        
-        # Get detailed health for individual services
-        detailed_result = await health_service.get_detailed_health()
-        services = []
-        if detailed_result.is_success:
-            for health_check in detailed_result.value:
-                services.append(ServiceHealthResponse(
-                    service_name=health_check.service_name,
-                    status=health_check.status.value,
-                    response_time_ms=health_check.response_time_ms,
-                    message=health_check.message,
-                    last_check=health_check.timestamp.isoformat()
-                ))
-        
-        return OverallHealthResponse(
-            status=health_data["status"],
-            message=health_data["message"],
-            response_time_ms=health_data["response_time_ms"],
-            services=services,
-            timestamp=health_data["timestamp"]
-        )
+        return OverallHealthResponse(**health_data)
         
     except Exception as e:
-        logger.error(f"Failed to get system health: {e}")
+        logger.error(f"Failed to get overall health: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/capabilities", response_model=ServiceCapabilitiesResponse)
 async def get_service_capabilities(
@@ -239,121 +200,140 @@ async def get_service_capabilities(
 ):
     """Get service capabilities"""
     try:
-        result = await orchestration_service.get_service_capabilities()
+        result = await orchestration_service.get_capabilities()
         if result.is_error:
             raise HTTPException(status_code=500, detail=result.error)
         
         capabilities = result.value
-        service_capabilities = [
-            ServiceCapabilityResponse(
-                service_name=service_name,
-                capabilities=service_caps,
-                description=f"{service_name.title()} service capabilities"
-            )
-            for service_name, service_caps in capabilities.items()
-        ]
-        
-        return ServiceCapabilitiesResponse(
-            services=service_capabilities,
-            total_services=len(service_capabilities)
-        )
+        return ServiceCapabilitiesResponse(**capabilities)
         
     except Exception as e:
         logger.error(f"Failed to get service capabilities: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Agent-specific Endpoints
+
+# Agent Endpoints
 @router.post("/agent/city-request")
-async def process_city_request(
-    city: str,
-    session_id: Optional[str] = None,
+async def city_request(
+    request: Dict[str, Any],
     orchestration_service: OrchestrationService = Depends(get_orchestration_service)
 ):
-    """Process a city information request using the agent"""
+    """Handle city-related requests"""
     try:
-        result = await orchestration_service.process_city_request(city, session_id)
+        city = request.get("city", "")
+        if not city:
+            raise HTTPException(status_code=400, detail="City is required")
+        
+        result = await orchestration_service.handle_city_request(city)
         if result.is_error:
             raise HTTPException(status_code=400, detail=result.error)
         
-        return {
-            "city": city,
-            "data": result.value,
-            "session_id": session_id,
-            "timestamp": datetime.now().isoformat()
-        }
+        return {"status": "ok", "result": result.value}
         
     except Exception as e:
-        logger.error(f"Failed to process city request for {city}: {e}")
+        logger.error(f"City request error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/agent/weather/{city}")
 async def get_weather(
     city: str,
     orchestration_service: OrchestrationService = Depends(get_orchestration_service)
 ):
-    """Get weather information for a city"""
+    """Get weather for a city"""
     try:
-        result = await orchestration_service.process_weather_request(city, "current")
+        result = await orchestration_service.get_weather(city)
         if result.is_error:
             raise HTTPException(status_code=400, detail=result.error)
         
-        return {
-            "city": city,
-            "weather": result.value,
-            "timestamp": datetime.now().isoformat()
-        }
+        return {"status": "ok", "weather": result.value}
         
     except Exception as e:
-        logger.error(f"Failed to get weather for {city}: {e}")
+        logger.error(f"Weather request error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/agent/time/{city}")
-async def get_current_time(
+async def get_time(
     city: str,
     orchestration_service: OrchestrationService = Depends(get_orchestration_service)
 ):
-    """Get current time for a city"""
+    """Get time for a city"""
     try:
-        result = await orchestration_service.process_time_request(city, "current")
+        result = await orchestration_service.get_time(city)
         if result.is_error:
             raise HTTPException(status_code=400, detail=result.error)
         
-        return {
-            "city": city,
-            "time": result.value,
-            "timestamp": datetime.now().isoformat()
-        }
+        return {"status": "ok", "time": result.value}
         
     except Exception as e:
-        logger.error(f"Failed to get time for {city}: {e}")
+        logger.error(f"Time request error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Utility Endpoints
+
+# Core Chat Endpoints
 @router.get("/ping", response_model=SuccessResponse)
 async def ping():
-    """Simple ping endpoint for health checks"""
-    return SuccessResponse(
-        message="Pong! API is running",
-        timestamp=datetime.now().isoformat()
-    )
+    """Simple ping endpoint"""
+    return SuccessResponse(message="pong")
+
+
+@router.post("/send")
+async def send_message(
+    request: Dict[str, Any],
+    orchestration_service: OrchestrationService = Depends(get_orchestration_service),
+    di_service: DIService = Depends(get_di_service)
+):
+    """Send a message to the AI agent using our LMStudioLLMService"""
+    try:
+        message = request.get("message", "")
+        if not message:
+            raise HTTPException(status_code=400, detail="Message is required")
+        
+        logger.info(f"Received message: {message}")
+        
+        # Use our LLM service from DI
+        llm_service = di_service.get_llm_service()
+        
+        # Create ChatMessage
+        chat_message = ChatMessage(
+            role=MessageRole.USER,
+            content=message,
+            timestamp=datetime.now()
+        )
+        
+        # Get completion using our service
+        result = await llm_service.get_completion([chat_message])
+        
+        if result.is_success:
+            response = result.value
+            logger.info(f"AI response: {response}")
+            return {
+                "status": "ok",
+                "response": response,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            logger.error(f"LLM service error: {result.error}")
+            raise HTTPException(status_code=500, detail=result.error)
+            
+    except Exception as e:
+        logger.error(f"Error processing message: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/info")
-async def get_api_info():
-    """Get API information"""
+async def get_chat_info():
+    """Get chat service information"""
     return {
-        "name": "ATS Reflectum Agent API",
+        "service": "Chat API",
         "version": "1.0.0",
-        "description": "Advanced AI agent with Microservices Architecture",
-        "features": [
-            "Session Management",
-            "Conversation History",
-            "Health Monitoring",
-            "Service Capabilities",
-            "City Information",
-            "Weather Data",
-            "Time Services",
-            "Knowledge Base"
+        "description": "AI Chat API using LM Studio",
+        "endpoints": [
+            "/sessions - Session management",
+            "/send - Send messages",
+            "/health - Health check",
+            "/capabilities - Service capabilities"
         ],
-        "architecture": "Clean Architecture with Microservices",
-        "timestamp": datetime.now().isoformat()
+        "status": "active"
     }

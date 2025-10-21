@@ -1,6 +1,14 @@
-# QUICK START - ATS Reflectum Agent Chat UI
+# QUICK START - AI Agent Starter Pack
 
-## 🚀 Szybkie Uruchomienie
+## 📚 Dokumentacja
+
+- **👥 Przewodnik dla użytkowników**: [USER_GUIDE.md](USER_GUIDE.md)
+- **⚡ Szybki start dla użytkowników**: [QUICK_START_USER.md](QUICK_START_USER.md)
+- **🔧 Rozwiązywanie problemów**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- **🏗️ Architektura**: [ARCHITECTURE.md](ARCHITECTURE.md)
+- **🌐 API**: [API.md](API.md)
+
+## 🚀 Szybkie Uruchomienie (Deweloperzy)
 
 ### 1. Przygotowanie Środowiska
 
@@ -11,10 +19,10 @@ cd moje/ATSReflectumAgentStarterPack/python_agent
 # Skopiuj przykładową konfigurację
 cp env.example .env
 
-# Edytuj plik .env i ustaw swoje klucze API
+# Edytuj plik .env i ustaw swoje ustawienia
 # Najważniejsze:
-# GOOGLE_API_KEY=your_google_api_key_here
-# GOOGLE_PROJECT_ID=your_project_id_here
+# LMSTUDIO_LLM_PROXY_URL=http://127.0.0.1:8123
+# EMBEDDING_PROVIDER=lmstudio
 ```
 
 ### 2. Instalacja Zależności
@@ -32,16 +40,38 @@ python main.py
 ```
 
 **Aplikacja będzie dostępna na:**
-- **Web UI (Chat):** http://localhost:8080
+- **FastAPI Backend:** http://localhost:8080
 - **API Documentation:** http://localhost:8080/docs
 - **API Endpoints:** http://localhost:8080/api/
 
+### 4. Uruchomienie Flutter UI (Opcjonalnie)
+
+```bash
+# W nowym terminalu
+cd presentation/ui/flutter_voice_ui
+flutter run -d web-server --web-port 3000
+```
+
+**Flutter UI będzie dostępne na:**
+- **Voice Interface:** http://localhost:3000
+
+### 5. Uruchomienie Google ADK Agent (Opcjonalnie)
+
+```bash
+# W nowym terminalu
+python -m google_adk.agent --config agents/root_agent.yaml
+```
+
 ## 🎯 Co Masz Dostępne
 
-### **1. Google ADK Web Interface**
+### **1. FastAPI Backend**
 - **URL:** http://localhost:8080
 - **Funkcje:** 
   - Chat z agentem
+  - Voice processing (STT/TTS)
+  - Session management
+  - Health monitoring
+  - Microservice tools
   - Tool calling visualization
   - Real-time responses
   - Session management
@@ -197,12 +227,172 @@ Po testach prostego UI możesz:
 3. **Dodać autentykację** - JWT tokens
 4. **Deploy na Cloud Run** - production deployment
 
-## 📞 Wsparcie
+## 🏗️ Wzorce Architektoniczne
 
-Jeśli masz problemy:
-1. Sprawdź logi aplikacji
-2. Sprawdź konfigurację .env
-3. Sprawdź czy wszystkie serwisy działają: `/api/health`
+### **1. Clean Architecture**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        PRESENTATION LAYER                      │
+│  FastAPI Endpoints  │  Flutter Voice UI  │  Google ADK Agent   │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────────┐
+│                        APPLICATION LAYER                       │
+│  DI Container      │  DTOs            │  Application Services   │
+│  - Container       │  - Request/Resp  │  - Orchestration       │
+│  - DIService       │  - Validation    │  - ChatAgentService    │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────────┐
+│                          DOMAIN LAYER                           │
+│  Entities          │  Interfaces (I*) │  Repositories          │
+│  - ChatMessage     │  - ILLMService    │  - ChatRepository      │
+│  - RAGChunk        │  - IVectorDbSvc   │  - VectorDbRepo        │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────────┐
+│                      INFRASTRUCTURE LAYER                      │
+│  AI Services       │  Data Services    │  External Services    │
+│  - Embeddings      │  - SQLite         │  - LM Studio          │
+│  - Vector DB        │  - Cache          │  - Google APIs        │
+│  - LLM Services     │  - Search         │  - OpenAI             │
+│  - Voice (STT/TTS)  │  - Storage         │  - HuggingFace        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### **2. Dependency Injection**
+```python
+from application.services.di_service import DIService
+
+# Automatyczne wstrzykiwanie zależności
+di_service = DIService()
+
+# Pobieranie serwisów
+llm_service = di_service.get_llm_service()
+voice_service = di_service.get_voice_service()
+chat_agent_service = di_service.get_chat_agent_service()
+```
+
+### **3. Railway Oriented Programming (ROP)**
+```python
+from domain.common.result import Result
+
+# Spójne obsługiwanie błędów
+result = await service.process_data(input_data)
+if result.is_success:
+    # Sukces
+    data = result.value
+else:
+    # Błąd
+    error_message = result.error
+```
+
+### **4. Multi-UI Architecture**
+- **Flutter Voice UI**: Nowoczesny interfejs głosowy
+- **Google ADK Agent**: Zaawansowany agent z narzędziami
+- **FastAPI Backend**: RESTful API dla wszystkich frontendów
+- **Future**: Własny system narzędzi (zastąpi ADK)
+
+> **📚 Szczegółowe wzorce**: Zobacz [ARCHITECTURAL_PATTERNS.md](ARCHITECTURAL_PATTERNS.md) dla kompletnych przykładów i implementacji.
+
+## 🛠️ Rozwój Własnego Agenta
+
+### **Krok 1: Wybór Interfejsu**
+```bash
+# Opcja A: Flutter Voice UI (zalecane dla voice-first)
+cd presentation/ui/flutter_voice_ui
+flutter run -d web-server --web-port 3000
+
+# Opcja B: Google ADK (zalecane dla enterprise)
+python -m google_adk.agent --config agents/root_agent.yaml
+
+# Opcja C: Własny frontend (dowolny framework)
+# Użyj API endpoints z http://localhost:8080/api/
+```
+
+### **Krok 2: Dodanie Własnych Narzędzi**
+```python
+# 1. Stwórz nowy serwis w infrastructure/services/
+class MyCustomService:
+    async def process_data(self, data: str) -> Result[str, str]:
+        # Twoja logika biznesowa
+        pass
+
+# 2. Zarejestruj w application/container.py
+my_service = providers.Singleton(MyCustomService)
+
+# 3. Dodaj do ChatAgentService
+class ChatAgentService:
+    def __init__(self, ..., my_service: MyCustomService):
+        self.my_service = my_service
+        # Zarejestruj jako narzędzie
+        self._services["my_tool"] = self.my_service
+```
+
+### **Krok 3: Konfiguracja Środowiska**
+```bash
+# .env
+LMSTUDIO_LLM_PROXY_URL=http://127.0.0.1:8123
+EMBEDDING_PROVIDER=lmstudio
+CACHE_PROVIDER=memory
+SEARCH_PROVIDER=local
+
+# Dodaj własne zmienne
+MY_SERVICE_API_KEY=your_key_here
+MY_SERVICE_URL=https://api.example.com
+```
+
+## 🔧 Narzędzia Deweloperskie
+
+### **Testowanie**
+```bash
+# Uruchom wszystkie testy
+python -m pytest tests/
+
+# Test konkretnego serwisu
+python -m pytest tests/test_voice_service.py
+
+# Test z coverage
+python -m pytest --cov=application tests/
+```
+
+### **Debugging**
+```bash
+# Uruchom z debugowaniem
+python -m debugpy --listen 5678 main.py
+
+# Sprawdź logi
+tail -f logs/app.log
+
+# Health check
+curl http://localhost:8080/api/health
+```
+
+### **Monitoring**
+```bash
+# Sprawdź status serwisów
+curl http://localhost:8080/api/capabilities
+
+# Statystyki konwersacji
+curl http://localhost:8080/api/stats
+
+# Health wszystkich komponentów
+curl http://localhost:8080/api/health
+```
+
+## 📚 Dalsze Kroki
+
+1. **Przeczytaj dokumentację**: [ARCHITECTURE.md](ARCHITECTURE.md), [API.md](API.md)
+2. **Eksperymentuj z kodem**: Zmodyfikuj serwisy, dodaj nowe narzędzia
+3. **Stwórz własny agent**: Użyj wzorców jako podstawy
+4. **Współtwórz**: Dodaj nowe funkcjonalności, popraw błędy
+
+## 🆘 Wsparcie
+
+- **Dokumentacja**: [docs/](docs/)
+- **Problemy**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- **Przykłady**: [tests/examples/](../tests/examples/)
+- **Kontakt**: Arkadiusz Słota - [LinkedIn](https://www.linkedin.com/in/arkadiusz-s%C5%82ota-229551172/) | [GitHub](https://github.com/Maggio333)
 
 ---
 

@@ -19,7 +19,7 @@ python --version
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Dependencies
+# Install dependencies
 pip install -r requirements.txt
 ```
 
@@ -29,38 +29,25 @@ pip install -r requirements.txt
 cp .env.example .env
 
 # Edit configuration
+# LMSTUDIO_LLM_PROXY_URL=http://127.0.0.1:8123
 # EMBEDDING_PROVIDER=lmstudio
-# LMSTUDIO_PROXY_URL=http://127.0.0.1:8123
-# QDRANT_URL=http://localhost:6333
-```
-
-### **External Services**
-```bash
-# Start Qdrant (Docker)
-docker run -p 6333:6333 qdrant/qdrant
-
-# Start LM Studio (Local)
-# Launch LM Studio and start embedding model
-# Configure proxy at http://127.0.0.1:8123
 ```
 
 ### **Run Application**
 ```bash
-# Start main application
+# Start backend
 python main.py
 
-# Run tests
-python -m pytest tests/
-
-# Run specific service
-python tests/test_health_service.py
+# Start Flutter UI (optional)
+cd presentation/ui/flutter_voice_ui
+flutter run -d web-server --web-port 3000
 ```
 
 ## 🐳 Docker Deployment
 
 ### **Dockerfile**
 ```dockerfile
-FROM python:3.11-slim
+FROM python:3.9-slim
 
 WORKDIR /app
 
@@ -77,18 +64,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
-
 # Expose port
-EXPOSE 8000
+EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')"
-
-# Start application
+# Run application
 CMD ["python", "main.py"]
 ```
 
@@ -100,46 +79,18 @@ services:
   ai-agent:
     build: .
     ports:
-      - "8000:8000"
+      - "8080:8080"
     environment:
-      - EMBEDDING_PROVIDER=lmstudio
-      - LMSTUDIO_PROXY_URL=http://lmstudio:8123
-      - QDRANT_URL=http://qdrant:6333
+      - LMSTUDIO_LLM_PROXY_URL=http://lmstudio:8123
     depends_on:
-      - qdrant
       - lmstudio
-    volumes:
-      - ./data:/app/data
-    restart: unless-stopped
-
-  qdrant:
-    image: qdrant/qdrant:latest
-    ports:
-      - "6333:6333"
-    volumes:
-      - qdrant_data:/qdrant/storage
-    restart: unless-stopped
 
   lmstudio:
     image: lmstudio/lmstudio:latest
     ports:
       - "8123:8123"
     volumes:
-      - lmstudio_data:/app/data
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-
-volumes:
-  qdrant_data:
-  lmstudio_data:
-  redis_data:
+      - ./models:/models
 ```
 
 ### **Build and Run**
@@ -147,241 +98,142 @@ volumes:
 # Build image
 docker build -t ai-agent-starter-pack .
 
-# Run with Docker Compose
+# Run container
+docker run -p 8080:8080 ai-agent-starter-pack
+
+# Or use docker-compose
 docker-compose up -d
-
-# Check logs
-docker-compose logs -f ai-agent
-
-# Stop services
-docker-compose down
 ```
 
 ## ☁️ Cloud Deployment
 
-### **Google Cloud Platform**
+### **Google Cloud Run**
+```bash
+# Build and push to Google Container Registry
+gcloud builds submit --tag gcr.io/PROJECT_ID/ai-agent-starter-pack
 
-#### **Cloud Run**
-```yaml
-# cloudbuild.yaml
-steps:
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/ai-agent', '.']
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/ai-agent']
-  - name: 'gcr.io/cloud-builders/gcloud'
-    args: ['run', 'deploy', 'ai-agent', '--image', 'gcr.io/$PROJECT_ID/ai-agent', '--platform', 'managed', '--region', 'us-central1']
+# Deploy to Cloud Run
+gcloud run deploy ai-agent-starter-pack \
+  --image gcr.io/PROJECT_ID/ai-agent-starter-pack \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated
 ```
 
-#### **Terraform Configuration**
-```hcl
-# main.tf
-resource "google_cloud_run_service" "ai_agent" {
-  name     = "ai-agent"
-  location = "us-central1"
+### **AWS ECS**
+```bash
+# Build and push to ECR
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ACCOUNT.dkr.ecr.us-east-1.amazonaws.com
 
-  template {
-    spec {
-      containers {
-        image = "gcr.io/${var.project_id}/ai-agent"
-        
-        env {
-          name  = "EMBEDDING_PROVIDER"
-          value = "google"
-        }
-        
-        env {
-          name  = "GOOGLE_PROJECT_ID"
-          value = var.project_id
-        }
-        
-        env {
-          name  = "QDRANT_URL"
-          value = "https://qdrant.example.com"
-        }
-      }
-    }
-  }
-}
+docker build -t ai-agent-starter-pack .
+docker tag ai-agent-starter-pack:latest ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/ai-agent-starter-pack:latest
+docker push ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/ai-agent-starter-pack:latest
 ```
 
-### **AWS Deployment**
+### **Azure Container Instances**
+```bash
+# Build and push to Azure Container Registry
+az acr build --registry myregistry --image ai-agent-starter-pack .
 
-#### **ECS Task Definition**
-```json
-{
-  "family": "ai-agent",
-  "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
-  "cpu": "512",
-  "memory": "1024",
-  "executionRoleArn": "arn:aws:iam::account:role/ecsTaskExecutionRole",
-  "containerDefinitions": [
-    {
-      "name": "ai-agent",
-      "image": "Maggio333.dkr.ecr.region.amazonaws.com/ai-agent:latest",
-      "portMappings": [
-        {
-          "containerPort": 8000,
-          "protocol": "tcp"
-        }
-      ],
-      "environment": [
-        {
-          "name": "EMBEDDING_PROVIDER",
-          "value": "huggingface"
-        },
-        {
-          "name": "HUGGINGFACE_API_TOKEN",
-          "value": "your-openai-token"
-        }
-      ],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/ai-agent",
-          "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "ecs"
-        }
-      }
-    }
-  ]
-}
+# Deploy to Container Instances
+az container create \
+  --resource-group myResourceGroup \
+  --name ai-agent-starter-pack \
+  --image myregistry.azurecr.io/ai-agent-starter-pack:latest \
+  --ports 8080
 ```
 
-### **Azure Deployment**
-
-#### **Container Instances**
-```yaml
-# azure-deployment.yaml
-apiVersion: 2021-07-01
-location: eastus
-name: ai-agent
-properties:
-  containers:
-  - name: ai-agent
-    properties:
-      image: Maggio333.azurecr.io/ai-agent:latest
-      ports:
-      - port: 8000
-      environmentVariables:
-      - name: EMBEDDING_PROVIDER
-        value: "openai"
-      - name: OPENAI_API_KEY
-        secureValue: "your-openai-key"
-      resources:
-        requests:
-          cpu: 1.0
-          memoryInGb: 2.0
-  osType: Linux
-  restartPolicy: Always
-```
-
-## 🔧 Configuration Management
+## 🔧 Production Configuration
 
 ### **Environment Variables**
 ```bash
-# Production environment
-export EMBEDDING_PROVIDER=google
-export GOOGLE_PROJECT_ID=Maggio333-project
-export GOOGLE_API_KEY=your-google-key
-export QDRANT_URL=https://qdrant.example.com
-export CACHE_PROVIDER=redis
-export REDIS_URL=redis://redis.example.com:6379
-export LOG_LEVEL=INFO
-export DEBUG=false
+# Production settings
+ENVIRONMENT=production
+LOG_LEVEL=INFO
+PORT=8080
+
+# AI Services
+LMSTUDIO_LLM_PROXY_URL=http://lmstudio:8123
+EMBEDDING_PROVIDER=lmstudio
+
+# Database
+DATABASE_URL=postgresql://user:pass@db:5432/ai_agent
+
+# Security
+SECRET_KEY=your-secret-key
+JWT_SECRET=your-jwt-secret
 ```
-
-### **Secrets Management**
-```bash
-# Google Secret Manager
-gcloud secrets create embedding-api-key --data-file=key.txt
-
-# AWS Secrets Manager
-aws secretsmanager create-secret --name "ai-agent/api-keys" --secret-string '{"openai":"key","huggingface":"token"}'
-
-# Azure Key Vault
-az keyvault secret set --vault-name "ai-agent-vault" --name "api-keys" --value '{"openai":"key"}'
-```
-
-## 📊 Monitoring and Logging
 
 ### **Health Checks**
 ```python
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    health_service = container.health_service()
-    result = await health_service.get_overall_health()
-    
-    if result.is_success:
-        return {"status": "healthy", "details": result.value}
-    else:
-        return {"status": "unhealthy", "error": result.error}
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "services": {
+            "llm": await check_llm_service(),
+            "voice": await check_voice_service(),
+            "database": await check_database()
+        }
+    }
 ```
+
+## 📊 Monitoring
 
 ### **Logging Configuration**
 ```python
-# Structured logging
 import logging
-from infrastructure.monitoring.logging.structured_logger import StructuredLogger
 
-logger = StructuredLogger("ai-agent")
-logger.info("Application started", extra={
-    "service": "ai-agent",
-    "version": "1.0.0",
-    "environment": "production"
-})
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
+)
 ```
 
 ### **Metrics Collection**
 ```python
-# Prometheus metrics (planned)
-from prometheus_client import Counter, Histogram, start_http_server
+from prometheus_client import Counter, Histogram, generate_latest
 
-REQUEST_COUNT = Counter('requests_total', 'Total requests')
-REQUEST_DURATION = Histogram('request_duration_seconds', 'Request duration')
+# Define metrics
+REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests')
+REQUEST_DURATION = Histogram('http_request_duration_seconds', 'HTTP request duration')
 
-@REQUEST_DURATION.time()
-async def process_request():
+# Use in endpoints
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    
     REQUEST_COUNT.inc()
-    # Process request
+    REQUEST_DURATION.observe(process_time)
+    
+    return response
 ```
 
-## 🔒 Security Considerations
+## 🔒 Security
 
-### **Network Security**
-```yaml
-# Docker network
-networks:
-  ai-agent-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-```
-
-### **SSL/TLS**
-```nginx
-# Nginx configuration
-server {
-    listen 443 ssl;
-    server_name ai-agent.example.com;
+### **HTTPS Configuration**
+```python
+# Use HTTPS in production
+if ENVIRONMENT == "production":
+    import ssl
     
-    ssl_certificate /etc/ssl/certs/ai-agent.crt;
-    ssl_certificate_key /etc/ssl/private/ai-agent.key;
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_context.load_cert_chain('cert.pem', 'key.pem')
     
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
+    uvicorn.run(app, ssl_context=ssl_context)
 ```
 
 ### **Authentication**
 ```python
-# JWT authentication (planned)
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 
@@ -389,15 +241,15 @@ security = HTTPBearer()
 
 async def verify_token(token: str = Depends(security)):
     # Verify JWT token
-    if not is_valid_token(token):
+    if not verify_jwt_token(token.credentials):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
+            detail="Invalid authentication credentials"
         )
     return token
 ```
 
-## 📈 Scaling Strategies
+## 📈 Scaling
 
 ### **Horizontal Scaling**
 ```yaml
@@ -405,22 +257,22 @@ async def verify_token(token: str = Depends(security)):
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ai-agent
+  name: ai-agent-starter-pack
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: ai-agent
+      app: ai-agent-starter-pack
   template:
     metadata:
       labels:
-        app: ai-agent
+        app: ai-agent-starter-pack
     spec:
       containers:
-      - name: ai-agent
-        image: ai-agent:latest
+      - name: ai-agent-starter-pack
+        image: ai-agent-starter-pack:latest
         ports:
-        - containerPort: 8000
+        - containerPort: 8080
         resources:
           requests:
             memory: "512Mi"
@@ -431,157 +283,53 @@ spec:
 ```
 
 ### **Load Balancing**
-```yaml
-# Kubernetes service
-apiVersion: v1
-kind: Service
-metadata:
-  name: ai-agent-service
-spec:
-  selector:
-    app: ai-agent
-  ports:
-  - port: 80
-    targetPort: 8000
-  type: LoadBalancer
-```
+```nginx
+# Nginx configuration
+upstream ai_agent {
+    server ai-agent-1:8080;
+    server ai-agent-2:8080;
+    server ai-agent-3:8080;
+}
 
-### **Auto-scaling**
-```yaml
-# Horizontal Pod Autoscaler
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: ai-agent-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: ai-agent
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-```
-
-## 🔄 CI/CD Pipeline
-
-### **GitHub Actions**
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy AI Agent
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install pytest pytest-asyncio
-    - name: Run tests
-      run: python -m pytest tests/
-
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Build Docker image
-      run: docker build -t ai-agent .
-    - name: Push to registry
-      run: docker push Maggio333/ai-agent:latest
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - name: Deploy to production
-      run: |
-        # Deployment commands
-        kubectl apply -f k8s/
+server {
+    listen 80;
+    server_name your-domain.com;
+    
+    location / {
+        proxy_pass http://ai_agent;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
 ```
 
 ## 🚨 Troubleshooting
 
 ### **Common Issues**
+- **Port Conflicts**: Check if port 8080 is available
+- **Memory Issues**: Increase container memory limits
+- **Database Connection**: Verify database URL and credentials
+- **Service Dependencies**: Ensure all services are running
 
-#### **Service Not Starting**
+### **Debug Commands**
 ```bash
-# Check logs
-docker logs ai-agent
+# Check container logs
+docker logs ai-agent-starter-pack
 
-# Check health
-curl http://localhost:8000/health
+# Check service health
+curl http://localhost:8080/health
 
-# Check dependencies
-docker ps | grep qdrant
-docker ps | grep redis
+# Check resource usage
+docker stats ai-agent-starter-pack
 ```
 
-#### **Memory Issues**
-```bash
-# Check memory usage
-docker stats ai-agent
+## 📞 Support
 
-# Increase memory limits
-docker run --memory=2g ai-agent
-```
-
-#### **Network Issues**
-```bash
-# Check network connectivity
-docker exec ai-agent ping qdrant
-docker exec ai-agent curl http://qdrant:6333/health
-```
-
-### **Debug Mode**
-```bash
-# Enable debug logging
-export LOG_LEVEL=DEBUG
-export DEBUG=true
-
-# Run with debug
-python main.py --debug
-```
-
-## 📋 Deployment Checklist
-
-### **Pre-deployment**
-- [ ] Tests passing
-- [ ] Environment variables configured
-- [ ] Secrets managed securely
-- [ ] Monitoring configured
-- [ ] Health checks implemented
-
-### **Deployment**
-- [ ] Build successful
-- [ ] Image pushed to registry
-- [ ] Services deployed
-- [ ] Health checks passing
-- [ ] Monitoring active
-
-### **Post-deployment**
-- [ ] Smoke tests passing
-- [ ] Performance metrics normal
-- [ ] Logs being collected
-- [ ] Alerts configured
-- [ ] Documentation updated
+- **Documentation**: [docs/](docs/)
+- **Issues**: GitHub Issues
+- **LinkedIn**: [Arkadiusz Słota](https://www.linkedin.com/in/arkadiusz-s%C5%82ota-229551172/)
+- **GitHub**: [Maggio333](https://github.com/Maggio333)
 
 ---
 
-**For more deployment examples and configurations, see the `deployment/` directory.**
+**Happy Deploying!** 🚀✨

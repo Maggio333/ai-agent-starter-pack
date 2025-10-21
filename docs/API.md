@@ -38,6 +38,73 @@ search_result = await vector_db_service.search("Hello world", limit=5)
 health_result = await health_service.check_health()
 ```
 
+## 🌐 REST API Endpoints
+
+### **Chat Endpoints** (`/api/`)
+- `POST /api/send` - Send message to agent
+- `POST /api/sessions` - Create new chat session
+- `GET /api/sessions/{session_id}` - Get session details
+- `GET /api/sessions/{session_id}/history` - Get conversation history
+- `GET /api/sessions/active` - Get active sessions
+- `DELETE /api/sessions/{session_id}` - Delete session
+- `GET /api/stats` - Get conversation statistics
+- `GET /api/health` - Overall health check
+- `GET /api/capabilities` - Service capabilities
+- `POST /api/agent/city-request` - City information request
+- `GET /api/agent/weather/{city}` - Weather information
+- `GET /api/agent/time/{city}` - Time information
+- `GET /api/ping` - Simple ping test
+- `GET /api/info` - Service information
+
+### **Voice Endpoints** (`/api/voice/`)
+- `POST /api/voice/transcribe` - Speech-to-Text conversion
+- `POST /api/voice/speak` - Text-to-Speech conversion
+- `GET /api/voice/audio/{filename}` - Get generated audio file
+- `GET /api/voice/health` - Voice service health check
+
+### **Notes Endpoints** (`/api/notes/`)
+- `POST /api/notes/save` - Save notes
+
+## 🎯 Agent Development Options
+
+### **Option 1: Flutter Voice UI**
+```bash
+# Start Flutter UI
+cd presentation/ui/flutter_voice_ui
+flutter run -d web-server --web-port 3000
+
+# Features:
+# - Real-time voice recording
+# - STT/TTS integration
+# - Modern Material Design UI
+# - Cross-platform support
+```
+
+### **Option 2: Google ADK Integration**
+```bash
+# Start Google ADK Agent
+python -m google_adk.agent --config agents/root_agent.yaml
+
+# Features:
+# - Advanced tool integration
+# - Microservice orchestration
+# - Enterprise-grade capabilities
+# - Complex workflow support
+```
+
+### **Option 3: Direct API Usage**
+```python
+import httpx
+
+# Send message to agent
+async with httpx.AsyncClient() as client:
+    response = await client.post(
+        "http://localhost:8080/api/send",
+        json={"message": "Hello, how are you?"}
+    )
+    result = response.json()
+```
+
 ## 🔧 Configuration
 
 ### **Environment Variables**
@@ -61,43 +128,32 @@ SEARCH_PROVIDER=local  # local, elasticsearch, solr, algolia
 
 ## 🏗️ Core Services API
 
-### **Embedding Service**
+### **Voice Service**
 
-#### **BaseEmbeddingService**
+#### **VoiceService Interface**
 ```python
-class BaseEmbeddingService(ABC):
-    @abstractmethod
-    async def create_embedding(self, text: str) -> Result[List[float], str]:
-        """Create a single embedding for the given text."""
+class VoiceService:
+    async def transcribe_audio(self, audio_file: bytes) -> Result[str, str]:
+        """Convert speech to text using faster-whisper."""
         pass
     
-    @abstractmethod
-    async def create_embeddings_batch(self, texts: List[str]) -> Result[List[List[float]], str]:
-        """Create embeddings for a list of texts."""
+    async def synthesize_speech(self, text: str) -> Result[str, str]:
+        """Convert text to speech using Piper."""
         pass
     
-    @abstractmethod
-    async def get_model_info(self) -> Result[Dict[str, Any], str]:
-        """Get information about the embedding model."""
-        pass
-    
-    @abstractmethod
     async def health_check(self) -> Result[Dict[str, Any], str]:
-        """Perform a health check on the embedding service."""
+        """Check voice service health."""
         pass
 ```
 
-#### **LM Studio Embedding Service**
+#### **Usage Example**
 ```python
-from infrastructure.ai.embeddings.lmstudio_embedding_service import LMStudioEmbeddingService
+from infrastructure.services.voice_service import VoiceService
 
 # Initialize service
-service = LMStudioEmbeddingService(
-    proxy_url="http://127.0.0.1:8123",
-    model_name="model:10"
-)
+voice_service = VoiceService()
 
-# Create embedding
+# Transcribe audio
 result = await service.create_embedding("Hello world")
 if result.is_success:
     embedding = result.value  # List[float]

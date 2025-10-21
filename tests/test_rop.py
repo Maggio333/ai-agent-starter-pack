@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from domain.utils.result import Result
 from domain.services.rop_service import ROPService
-from agents.ChatAgent import ChatAgent
+from application.services.chat_agent_service import ChatAgentService
 
 def test_result_success():
     """Test Result.success()"""
@@ -37,21 +37,21 @@ def test_result_bind():
 
 def test_get_weather_success():
     """Test get_weather with ROP"""
-    agent = ChatAgent()
+    agent = ChatAgentService()
     result = agent.get_weather("new york")
     assert result.is_success
     assert "sunny" in result.value
 
 def test_get_weather_error():
     """Test get_weather error with ROP"""
-    agent = ChatAgent()
+    agent = ChatAgentService()
     result = agent.get_weather("warsaw")
     assert result.is_error
     assert "not available" in result.error
 
 def test_process_city_request_success():
     """Test ROP pipeline success"""
-    agent = ChatAgent()
+    agent = ChatAgentService()
     result = agent.process_city_request("new york")
     assert result.is_success
     assert result.value["city"] == "New York"
@@ -60,7 +60,7 @@ def test_process_city_request_success():
 
 def test_process_city_request_error():
     """Test ROP pipeline error"""
-    agent = ChatAgent()
+    agent = ChatAgentService()
     result = agent.process_city_request("")
     assert result.is_error
     assert "empty" in result.error

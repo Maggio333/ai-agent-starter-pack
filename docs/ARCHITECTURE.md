@@ -8,19 +8,22 @@
 
 | Layer | Files | Services | Status |
 |-------|-------|----------|--------|
-| **Presentation** | 3 | 0 | 🟡 Empty (Ready for implementation) |
+| **Presentation** | 8+ | 3 | ✅ Complete (FastAPI + Flutter UI) |
 | **Application** | 8 | 7 | ✅ Complete |
 | **Domain** | 8 | 3 | ✅ Complete |
-| **Infrastructure** | 35 | 15+ | ✅ Complete |
+| **Infrastructure** | 35+ | 18+ | ✅ Complete |
 | **Tests** | 20+ | - | ✅ Complete |
 
-### **Total: 70+ files, 25+ services**
+### **Total: 80+ files, 31+ services**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        PRESENTATION LAYER                      │
 ├─────────────────────────────────────────────────────────────────┤
-│  API (FastAPI)     │  CLI Interface    │  Web UI (Future)     │
+│  FastAPI Endpoints  │  Flutter Voice UI  │  Google ADK Agent   │
+│  - Chat API         │  - Voice Recording │  - Tool Integration │
+│  - Voice API        │  - STT/TTS         │  - Agent Orchestr. │
+│  - Health API       │  - Real-time UI    │  - Microservices    │
 └─────────────────────────────────────────────────────────────────┘
                                 │
 ┌─────────────────────────────────────────────────────────────────┐
@@ -28,7 +31,8 @@
 ├─────────────────────────────────────────────────────────────────┤
 │  DI Container      │  DTOs            │  Application Services   │
 │  - Container       │  - Request/Resp  │  - Orchestration       │
-│  - DIService       │  - Validation    │  - Business Logic      │
+│  - DIService       │  - Validation    │  - ChatAgentService    │
+│  - Service Registry│  - Error Handling│  - Business Logic      │
 └─────────────────────────────────────────────────────────────────┘
                                 │
 ┌─────────────────────────────────────────────────────────────────┐
@@ -53,10 +57,11 @@
 │                      INFRASTRUCTURE LAYER                      │
 ├─────────────────────────────────────────────────────────────────┤
 │  AI Services       │  Data Services    │  External Services    │
-│  - Embeddings      │  - SQLite         │  - Google APIs        │
-│  - Vector DB       │  - Cache          │  - Qdrant             │
-│  - LLM             │  - Search         │  - OpenAI             │
-│  - Monitoring      │  - Storage         │  - HuggingFace        │
+│  - Embeddings      │  - SQLite         │  - LM Studio          │
+│  - Vector DB        │  - Cache          │  - Google APIs        │
+│  - LLM Services     │  - Search         │  - OpenAI             │
+│  - Voice (STT/TTS)  │  - Storage         │  - HuggingFace        │
+│  - Monitoring      │  - File System     │  - Qdrant             │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -66,31 +71,81 @@
 - **Domain Layer**: Core business logic, entities, and C#-style interfaces (I*)
 - **Application Layer**: Use cases, orchestration, and DTOs
 - **Infrastructure Layer**: External dependencies and implementations
-- **Presentation Layer**: APIs, CLI, and user interfaces
+- **Presentation Layer**: APIs, Flutter UI, and Google ADK integration
 
-### **2. Dependency Injection**
+### **2. Multi-UI Architecture**
+- **Flutter Voice UI**: Modern cross-platform voice interface
+- **Google ADK Agent**: Enterprise-grade agent with tool integration
+- **FastAPI Backend**: RESTful API for all frontend types
+- **Future**: Custom tool system (replacing ADK dependency)
+
+### **3. Dependency Injection**
 - **Container**: Centralized service registration and resolution
 - **Provider Choice**: Dynamic service selection based on configuration
 - **Singleton Pattern**: Efficient resource management
 - **Configuration**: Environment-based service configuration
 
-### **3. Railway Oriented Programming (ROP)**
+### **4. Railway Oriented Programming (ROP)**
 - **Result Pattern**: Consistent error handling across all services
 - **Pipeline Operations**: Functional composition of operations
 - **Error Propagation**: Clean error flow without exceptions
 - **Validation**: Input validation and sanitization
 
-### **4. Microservices Architecture**
+### **5. Microservices Architecture**
 - **Facade Pattern**: Unified interfaces for complex subsystems
 - **Service Decomposition**: Specialized, focused services
 - **Loose Coupling**: Independent service evolution
 - **Scalability**: Horizontal scaling capabilities
 
-### **5. C#-Style Interface Architecture**
-- **Interface Naming**: All interfaces use `I` prefix (ICityService, IWeatherService, etc.)
-- **Abstract Methods**: Clear separation of interface from implementation
-- **Enterprise Patterns**: Professional patterns from C#/.NET ecosystem
-- **Consistency**: Every service has its corresponding interface
+### **6. Voice-First Design**
+- **STT Integration**: Speech-to-Text with faster-whisper
+- **TTS Integration**: Text-to-Speech with Piper
+- **Real-time Processing**: WebSocket-like experience via HTTP
+- **Cross-platform**: Flutter UI works on web, mobile, desktop
+
+> **📚 Detailed patterns**: See [ARCHITECTURAL_PATTERNS.md](ARCHITECTURAL_PATTERNS.md) for comprehensive examples and implementation guidelines.
+
+## 🚀 Agent Development Options
+
+### **Option 1: Flutter Voice UI (Current)**
+- **Best for**: Voice-first applications, mobile/web deployment
+- **Features**: Real-time STT/TTS, modern UI, cross-platform
+- **Tech Stack**: Flutter + FastAPI + LM Studio
+- **Use Case**: Personal assistants, voice interfaces
+
+### **Option 2: Google ADK Integration (Current)**
+- **Best for**: Enterprise applications, complex tool integration
+- **Features**: Advanced agent orchestration, microservice tools
+- **Tech Stack**: Google ADK + FastAPI + LM Studio
+- **Use Case**: Business automation, complex workflows
+
+### **Option 3: Custom Tool System (Future)**
+- **Best for**: Complete control, no external dependencies
+- **Features**: Custom tool framework, full ownership
+- **Tech Stack**: Custom implementation + FastAPI + LM Studio
+- **Use Case**: Proprietary solutions, specialized domains
+
+## 🛣️ Development Roadmap
+
+### **Phase 1: Foundation (Current)**
+- ✅ Clean Architecture implementation
+- ✅ Dependency Injection container
+- ✅ Railway Oriented Programming
+- ✅ Voice services (STT/TTS)
+- ✅ Flutter UI
+- ✅ Google ADK integration
+
+### **Phase 2: Enhancement (Next)**
+- 🔄 Custom tool system development
+- 🔄 Advanced agent orchestration
+- 🔄 Multi-modal capabilities
+- 🔄 Enhanced error handling
+
+### **Phase 3: Scale (Future)**
+- 📋 Distributed agent deployment
+- 📋 Advanced monitoring
+- 📋 Custom LLM integration
+- 📋 Enterprise features
 
 ## 📦 Service Architecture
 

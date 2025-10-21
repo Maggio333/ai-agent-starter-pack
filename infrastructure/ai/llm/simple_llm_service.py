@@ -11,7 +11,7 @@ from domain.utils.result import Result
 class SimpleLLMService(ILLMService):
     """Simple LLM service implementation with only essential methods"""
     
-    def __init__(self, proxy_url: str = "http://127.0.0.1:1234", model_name: str = "model:1"):
+    def __init__(self, proxy_url: str = "http://127.0.0.1:8123", model_name: str = "model:1"):
         self.proxy_url = proxy_url
         self.model_name = model_name
         self.logger = logging.getLogger(__name__)

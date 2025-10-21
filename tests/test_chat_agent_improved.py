@@ -3,11 +3,11 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agents.ChatAgent import ChatAgent, root_agent
+from application.services.chat_agent_service import ChatAgentService, root_agent
 
 def test_chat_agent_class():
     """Test ChatAgent class"""
-    agent = ChatAgent()
+    agent = ChatAgentService()
     
     # Test weather for multiple cities
     result = agent.get_weather("new york")
@@ -33,7 +33,7 @@ def test_chat_agent_class():
 
 def test_chat_agent_time():
     """Test ChatAgent time functionality"""
-    agent = ChatAgent()
+    agent = ChatAgentService()
     
     # Test time for multiple cities
     result = agent.get_current_time("new york")
@@ -59,7 +59,7 @@ def test_chat_agent_time():
 
 def test_chat_agent_pipeline():
     """Test ChatAgent pipeline"""
-    agent = ChatAgent()
+    agent = ChatAgentService()
     
     # Test successful pipeline
     result = agent.process_city_request("new york")

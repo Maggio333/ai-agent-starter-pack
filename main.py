@@ -6,6 +6,8 @@ from google.adk.cli.fast_api import get_fast_api_app
 
 # Import our custom API endpoints
 from presentation.api.chat_endpoints import router as chat_router
+from presentation.api.voice_endpoints import router as voice_router
+from presentation.api.notes_endpoints import router as notes_router
 
 # Configure logging with UTF-8 encoding
 import sys
@@ -35,8 +37,32 @@ app: FastAPI = get_fast_api_app(
     web=SERVE_WEB_INTERFACE,
 )
 
+# Add CORS middleware
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Add our custom API endpoints
 app.include_router(chat_router, prefix="/api", tags=["chat"])
+app.include_router(voice_router, prefix="/api", tags=["voice"])
+app.include_router(notes_router, prefix="/api", tags=["notes"])
+
+# Mount static files for audio
+from fastapi.staticfiles import StaticFiles
+import os
+static_dir = os.path.join(AGENT_DIR, "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# Add a simple health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "message": "Voice AI System is running"}
 
 # Add custom middleware for logging
 @app.middleware("http")

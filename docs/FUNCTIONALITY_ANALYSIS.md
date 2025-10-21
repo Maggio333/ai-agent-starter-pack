@@ -11,12 +11,13 @@
 | Kategoria | Liczba | Status | Opis |
 |-----------|--------|--------|------|
 | **Application Services** | 7 | ✅ Complete | Use Cases biznesowe |
-| **AI Services** | 15+ | ✅ Complete | LLM, Embeddings, Vector DB |
+| **AI Services** | 15+ | ✅ Complete | LLM, Embeddings, Vector DB, Voice |
 | **Data Services** | 10+ | ✅ Complete | Storage, Cache, Search |
 | **Infrastructure** | 25+ | ✅ Complete | Config, Monitoring, Health |
 | **Domain Entities** | 3 | ✅ Complete | Core business objects |
+| **Presentation** | 8+ | ✅ Complete | FastAPI + Flutter UI + ADK |
 | **Tests** | 25+ | ✅ Complete | Comprehensive testing |
-| **Documentation** | 10+ | ✅ Complete | Complete docs suite |
+| **Documentation** | 15+ | ✅ Complete | Complete docs suite |
 
 ---
 

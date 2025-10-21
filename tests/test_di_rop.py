@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from application.services.di_service import DIService
 from domain.services.rop_service import ROPService
-from agents.ChatAgent import ChatAgent
+from application.services.chat_agent_service import ChatAgentService
 from domain.entities.chat_message import ChatMessage, MessageRole
 from domain.entities.rag_chunk import RAGChunk
 from datetime import datetime
@@ -20,7 +20,7 @@ def test_di_service():
 
 def test_chat_agent():
     """Test Chat Agent with DI"""
-    agent = ChatAgent()
+    agent = ChatAgentService()
     
     # Test weather
     result = agent.get_weather("new york")

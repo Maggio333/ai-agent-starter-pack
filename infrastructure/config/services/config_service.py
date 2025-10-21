@@ -77,7 +77,7 @@ class ConfigService(IConfigService):
             })
         elif provider == "lmstudio":
             result.update({
-                "proxy_url": os.getenv("LMSTUDIO_LLM_PROXY_URL", "http://127.0.0.1:1234"),
+                "proxy_url": os.getenv("LMSTUDIO_LLM_PROXY_URL", "http://127.0.0.1:8123"),
                 "model_name": os.getenv("LMSTUDIO_LLM_MODEL_NAME", "model:1")
             })
         elif provider == "ollama":

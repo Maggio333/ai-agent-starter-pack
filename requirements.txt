@@ -100,3 +100,13 @@ uvicorn==0.37.0
 watchdog==6.0.0
 websockets==15.0.1
 zipp==3.23.0
+
+# Voice features (STT/TTS)
+faster-whisper==1.0.1
+piper-tts==1.2.0
+librosa==0.10.1
+soundfile==0.12.1
+
+# WebSocket proxy for LM Studio
+websockets==12.0
+aiohttp==3.9.1

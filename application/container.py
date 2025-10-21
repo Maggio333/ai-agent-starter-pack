@@ -18,8 +18,10 @@ from application.services.time_service import TimeService
 from application.services.knowledge_service import KnowledgeService
 from application.services.conversation_service import ConversationService
 from application.services.orchestration_service import OrchestrationService
+from application.services.chat_agent_service import ChatAgentService
 from infrastructure.services.text_cleaner_service import TextCleanerService
 from infrastructure.services.email_service import EmailService
+from infrastructure.services.voice_service import VoiceService
 
 class Container(containers.DeclarativeContainer):
     """Dependency Injection Container - używany przez DIService"""
@@ -180,7 +182,7 @@ class Container(containers.DeclarativeContainer):
         elif provider == 'lmstudio':
             return LLMFactory.create_service(
                 LLMProvider.LMSTUDIO,
-                proxy_url=llm_config.get('proxy_url', 'http://127.0.0.1:1234'),
+                proxy_url=llm_config.get('proxy_url', 'http://127.0.0.1:8123'),
                 model_name=llm_config.get('model_name', 'model:1')
             )
         elif provider == 'ollama':
@@ -193,7 +195,7 @@ class Container(containers.DeclarativeContainer):
             # Fallback to LM Studio (local option)
             return LLMFactory.create_service(
                 LLMProvider.LMSTUDIO,
-                proxy_url='http://127.0.0.1:1234',
+                proxy_url='http://127.0.0.1:8123',
                 model_name='model:1'
             )
     
@@ -221,3 +223,17 @@ class Container(containers.DeclarativeContainer):
     
     # Email Service - TYLKO JEDNA LINIA!
     email_service = providers.Singleton(EmailService)
+    
+    # Voice Service
+    voice_service = providers.Singleton(VoiceService)
+    
+    # Chat Agent Service
+    chat_agent_service = providers.Singleton(
+        ChatAgentService,
+        rop_service=rop_service,
+        chat_repository=chat_repository,
+        llm_service=llm_service,
+        vector_db_service=vector_db_service,
+        orchestration_service=orchestration_service,
+        conversation_service=conversation_service
+    )
