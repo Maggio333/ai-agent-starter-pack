@@ -206,3 +206,11 @@ backup/
 # Local configuration
 config.local.py
 settings.local.py
+
+# Voice and audio files
+static/audio/
+voices/
+*.wav
+*.mp3
+*.ogg
+*.onnx
