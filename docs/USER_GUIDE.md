@@ -58,11 +58,11 @@ Upewnij się, że porty są wolne:
    ```
 3. Pobierz kod:
    ```cmd
-   git clone https://github.com/twoj-repo/ATSReflectumAgentStarterPack.git
+   git clone https://github.com/Maggio333/ai-agent-starter-pack.git
    ```
 4. Przejdź do folderu aplikacji:
    ```cmd
-   cd ATSReflectumAgentStarterPack\python_agent
+   cd ai-agent-starter-pack
    ```
 
 ### Krok 2: Zainstaluj Python i zależności
@@ -131,14 +131,32 @@ Upewnij się, że porty są wolne:
 
 ### Krok 2: Uruchom Python Backend
 
+**Wybierz jeden z dwóch serwerów:**
+
+#### 🎯 Opcja A: Clean FastAPI (Zalecane)
 1. **Otwórz Command Prompt**
 2. **Przejdź do folderu aplikacji:**
    ```cmd
-   cd C:\Users\%USERNAME%\Desktop\ATSReflectumAgentStarterPack\python_agent
+   cd C:\Users\%USERNAME%\Desktop\ai-agent-starter-pack
    ```
 3. **Uruchom serwer:**
    ```cmd
-   python main.py
+   python main_fastapi.py
+   ```
+4. **Sprawdź czy działa:**
+   - Otwórz przeglądarkę
+   - Idź na `http://localhost:8080`
+   - Powinieneś zobaczyć stronę API
+
+#### 🎯 Opcja B: Google ADK (Zaawansowane)
+1. **Otwórz Command Prompt**
+2. **Przejdź do folderu aplikacji:**
+   ```cmd
+   cd C:\Users\%USERNAME%\Desktop\ai-agent-starter-pack
+   ```
+3. **Uruchom serwer:**
+   ```cmd
+   python main_adk.py
    ```
 4. **Sprawdź czy działa:**
    - Otwórz przeglądarkę
@@ -150,7 +168,7 @@ Upewnij się, że porty są wolne:
 1. **Otwórz nowy Command Prompt**
 2. **Przejdź do folderu Flutter:**
    ```cmd
-   cd C:\Users\%USERNAME%\Desktop\ATSReflectumAgentStarterPack\python_agent\presentation\ui\flutter_voice_ui
+   cd C:\Users\%USERNAME%\Desktop\ai-agent-starter-pack\presentation\ui\flutter_voice_ui
    ```
 3. **Uruchom aplikację:**
    ```cmd

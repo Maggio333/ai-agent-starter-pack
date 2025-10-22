@@ -1,59 +1,45 @@
-# 🚀 Szybki Start - Voice AI Assistant
+# 🎤 Voice AI Assistant - Prosty Przewodnik
 
-## ⚡ Instalacja w 5 minut
+## 🎯 Co to jest?
 
-### 1️⃣ Pobierz i zainstaluj
+**Voice AI Assistant** to aplikacja, która pozwala na rozmowę z AI używając głosu:
 
-```bash
-# Pobierz kod
-git clone https://github.com/Maggio333/ai-agent-starter-pack.git
-cd ai-agent-starter-pack
+- 🎤 **Mówisz** do aplikacji
+- 🤖 **AI odpowiada** tekstowo  
+- 🔊 **AI mówi** odpowiedź
 
-# Zainstaluj Python zależności
-pip install -r requirements.txt
-```
+## ⚡ Szybki Start (5 minut)
 
-### 2️⃣ Pobierz programy
-
+### 1️⃣ Pobierz programy
 - **Python 3.10+**: https://www.python.org/downloads/
 - **Flutter SDK**: https://flutter.dev/docs/get-started/install/windows
 - **LM Studio**: https://lmstudio.ai/
 
-### 3️⃣ Uruchom aplikację
-
-**Wybierz jeden z dwóch serwerów:**
-
-#### 🎯 Opcja A: Clean FastAPI (Zalecane)
+### 2️⃣ Pobierz kod
 ```bash
-# Terminal 1: LM Studio
-# Otwórz LM Studio → Local Server → Start Server
-
-# Terminal 2: Python Backend (Clean FastAPI)
-python main_fastapi.py
-
-# Terminal 3: Flutter Frontend
-cd presentation/ui/flutter_voice_ui
-flutter run -d web-server --web-port 3000
+git clone https://github.com/Maggio333/ai-agent-starter-pack.git
+cd ai-agent-starter-pack
+pip install -r requirements.txt
 ```
 
-#### 🎯 Opcja B: Google ADK (Zaawansowane)
+### 3️⃣ Uruchom aplikację
+
+**Terminal 1: LM Studio**
+- Otwórz LM Studio → Local Server → Start Server
+
+**Terminal 2: Python Backend**
 ```bash
-# Terminal 1: LM Studio
-# Otwórz LM Studio → Local Server → Start Server
+python main_fastapi.py
+```
 
-# Terminal 2: Python Backend (Google ADK)
-python main_adk.py
-
-# Terminal 3: Flutter Frontend
+**Terminal 3: Flutter Frontend**
+```bash
 cd presentation/ui/flutter_voice_ui
 flutter run -d web-server --web-port 3000
 ```
 
 ### 4️⃣ Otwórz aplikację
-
 🌐 **http://localhost:3000**
-
----
 
 ## 🎤 Jak używać
 
@@ -61,34 +47,23 @@ flutter run -d web-server --web-port 3000
 2. **Mów** do aplikacji
 3. **Słuchaj** odpowiedzi AI
 
----
-
 ## 🔧 Problemy?
 
 ### Port zajęty?
 ```bash
-# Znajdź proces
 netstat -ano | findstr :8080
-
-# Zabij proces
 taskkill /PID [numer] /F
 ```
 
 ### Python nie działa?
 ```bash
-# Sprawdź wersję
 python --version
-
-# Zainstaluj zależności
 pip install -r requirements.txt
 ```
 
 ### Flutter nie działa?
 ```bash
-# Sprawdź instalację
 flutter doctor
-
-# Wyczyść cache
 flutter clean
 flutter pub get
 ```
@@ -96,9 +71,6 @@ flutter pub get
 ### LM Studio nie odpowiada?
 - Sprawdź czy serwer jest uruchomiony na porcie 8123
 - Upewnij się że model jest załadowany
-- Sprawdź logi w LM Studio
-
----
 
 ## 🎯 Różnice między serwerami
 
@@ -108,8 +80,6 @@ flutter pub get
 | **Funkcje** | Podstawowe | Zaawansowane |
 | **Dokumentacja** | OpenAPI | ADK UI |
 | **Zalecane dla** | Początkujących | Zaawansowanych |
-
----
 
 ## 📞 Pomoc
 
