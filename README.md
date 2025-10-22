@@ -5,18 +5,18 @@
 ## 🚀 Szybki Start
 
 ### Dla użytkowników (osoby nietechniczne)
-📖 **[Przewodnik użytkownika](python_agent/docs/USER_GUIDE.md)** - kompletna instrukcja instalacji i użytkowania
+📖 **[Przewodnik użytkownika](docs/USER_GUIDE.md)** - kompletna instrukcja instalacji i użytkowania
 
-⚡ **[Szybki start](python_agent/docs/QUICK_START_USER.md)** - instalacja w 5 minut
+⚡ **[Szybki start](docs/QUICK_START_USER.md)** - instalacja w 5 minut
 
-🔧 **[Rozwiązywanie problemów](python_agent/docs/TROUBLESHOOTING.md)** - pomoc gdy coś nie działa
+🔧 **[Rozwiązywanie problemów](docs/TROUBLESHOOTING.md)** - pomoc gdy coś nie działa
 
 ### Dla deweloperów
-⚡ **[Quick Start](python_agent/docs/QUICK_START.md)** - szybkie uruchomienie dla deweloperów
+⚡ **[Quick Start](docs/QUICK_START.md)** - szybkie uruchomienie dla deweloperów
 
-🏗️ **[Architektura](python_agent/docs/ARCHITECTURE.md)** - opis architektury aplikacji
+🏗️ **[Architektura](docs/ARCHITECTURE.md)** - opis architektury aplikacji
 
-📚 **[API](python_agent/docs/API.md)** - dokumentacja API
+📚 **[API](docs/API.md)** - dokumentacja API
 
 ## 🎯 Co to jest?
 
@@ -175,20 +175,20 @@ cd presentation/ui/flutter_voice_ui
 flutter run -d web-server --web-port 3000
 ```
 
-**📖 Pełna instrukcja**: [python_agent/docs/USER_GUIDE.md](python_agent/docs/USER_GUIDE.md)
+**📖 Pełna instrukcja**: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
 
 ## 📚 Documentation
 
-- **👥 User Guide**: [python_agent/docs/USER_GUIDE.md](python_agent/docs/USER_GUIDE.md) - Complete guide for non-technical users
-- **⚡ Quick Start**: [python_agent/docs/QUICK_START_USER.md](python_agent/docs/QUICK_START_USER.md) - 5-minute setup guide
-- **🆕 Simple Guide**: [python_agent/docs/README_SIMPLE.md](python_agent/docs/README_SIMPLE.md) - Ultra-simple guide for beginners
-- **🪟 Windows Setup**: [python_agent/docs/SETUP_WINDOWS.md](python_agent/docs/SETUP_WINDOWS.md) - Detailed Windows installation
-- **🔧 Troubleshooting**: [python_agent/docs/TROUBLESHOOTING.md](python_agent/docs/TROUBLESHOOTING.md) - Common issues and solutions
-- **🏗️ Architecture**: [python_agent/docs/ARCHITECTURE.md](python_agent/docs/ARCHITECTURE.md) - System architecture overview
-- **🌐 API Reference**: [python_agent/docs/API.md](python_agent/docs/API.md) - Complete API documentation
-- **🛠️ Developer Guide**: [python_agent/docs/QUICK_START.md](python_agent/docs/QUICK_START.md) - Developer quick start
-- **🎯 Patterns**: [python_agent/docs/ARCHITECTURAL_PATTERNS.md](python_agent/docs/ARCHITECTURAL_PATTERNS.md) - Architectural patterns guide
-- **🛣️ Roadmap**: [python_agent/docs/ROADMAP.md](python_agent/docs/ROADMAP.md) - Development roadmap and future plans
+- **👥 User Guide**: [docs/USER_GUIDE.md](docs/USER_GUIDE.md) - Complete guide for non-technical users
+- **⚡ Quick Start**: [docs/QUICK_START_USER.md](docs/QUICK_START_USER.md) - 5-minute setup guide
+- **🆕 Simple Guide**: [docs/README_SIMPLE.md](docs/README_SIMPLE.md) - Ultra-simple guide for beginners
+- **🪟 Windows Setup**: [docs/SETUP_WINDOWS.md](docs/SETUP_WINDOWS.md) - Detailed Windows installation
+- **🔧 Troubleshooting**: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues and solutions
+- **🏗️ Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture overview
+- **🌐 API Reference**: [docs/API.md](docs/API.md) - Complete API documentation
+- **🛠️ Developer Guide**: [docs/QUICK_START.md](docs/QUICK_START.md) - Developer quick start
+- **🎯 Patterns**: [docs/ARCHITECTURAL_PATTERNS.md](docs/ARCHITECTURAL_PATTERNS.md) - Architectural patterns guide
+- **🛣️ Roadmap**: [docs/ROADMAP.md](docs/ROADMAP.md) - Development roadmap and future plans
 
 ## 🎮 Użytkowanie
 
@@ -206,7 +206,7 @@ flutter run -d web-server --web-port 3000
 - LM Studio nie odpowiada → sprawdź czy serwer jest uruchomiony
 - Flutter nie działa → sprawdź `flutter doctor`
 
-**📖 Pełny przewodnik**: [python_agent/docs/TROUBLESHOOTING.md](python_agent/docs/TROUBLESHOOTING.md)
+**📖 Pełny przewodnik**: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
 ## 📊 Status
 
@@ -227,7 +227,7 @@ flutter run -d web-server --web-port 3000
 
 ## 🤝 Wsparcie
 
-- **📖 Dokumentacja**: [python_agent/docs/](python_agent/docs/)
+- **📖 Dokumentacja**: [docs/](docs/)
 - **🐛 Problemy**: GitHub Issues
 - **💼 LinkedIn**: [Arkadiusz Słota](https://www.linkedin.com/in/arkadiusz-s%C5%82ota-229551172/)
 - **🐙 GitHub**: [Maggio333](https://github.com/Maggio333)
