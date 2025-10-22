@@ -1,30 +1,31 @@
-# 🎤 Voice AI Assistant
+# 🎤 Voice AI Assistant - Full Stack
 
-**Voice AI Assistant** to aplikacja do rozmowy z sztuczną inteligencją używając głosu. Mówisz do aplikacji, AI odpowiada tekstowo, a następnie AI mówi odpowiedź.
+**Voice AI Assistant** to kompletna aplikacja do rozmowy z sztuczną inteligencją używając głosu. Składa się z backendu Python (FastAPI + Google ADK) i frontendu Flutter Web.
 
 ## 🚀 Szybki Start
 
 ### Dla użytkowników (osoby nietechniczne)
-📖 **[Przewodnik użytkownika](docs/USER_GUIDE.md)** - kompletna instrukcja instalacji i użytkowania
+📖 **[Przewodnik użytkownika](python_agent/docs/USER_GUIDE.md)** - kompletna instrukcja instalacji i użytkowania
 
-⚡ **[Szybki start](docs/QUICK_START_USER.md)** - instalacja w 5 minut
+⚡ **[Szybki start](python_agent/docs/QUICK_START_USER.md)** - instalacja w 5 minut
 
-🔧 **[Rozwiązywanie problemów](docs/TROUBLESHOOTING.md)** - pomoc gdy coś nie działa
+🔧 **[Rozwiązywanie problemów](python_agent/docs/TROUBLESHOOTING.md)** - pomoc gdy coś nie działa
 
 ### Dla deweloperów
-⚡ **[Quick Start](docs/QUICK_START.md)** - szybkie uruchomienie dla deweloperów
+⚡ **[Quick Start](python_agent/docs/QUICK_START.md)** - szybkie uruchomienie dla deweloperów
 
-🏗️ **[Architektura](docs/ARCHITECTURE.md)** - opis architektury aplikacji
+🏗️ **[Architektura](python_agent/docs/ARCHITECTURE.md)** - opis architektury aplikacji
 
-📚 **[API](docs/API.md)** - dokumentacja API
+📚 **[API](python_agent/docs/API.md)** - dokumentacja API
 
 ## 🎯 Co to jest?
 
 **Voice AI Assistant** składa się z:
 
-- **🎤 Speech-to-Text** - zamienia Twoją mowę na tekst
-- **🤖 AI Chat** - odpowiada na pytania używając lokalnego modelu AI
-- **🔊 Text-to-Speech** - zamienia odpowiedź AI na mowę
+- **🎤 Speech-to-Text** - zamienia Twoją mowę na tekst (Whisper)
+- **🤖 AI Chat** - odpowiada na pytania używając lokalnego modelu AI (LM Studio)
+- **🔊 Text-to-Speech** - zamienia odpowiedź AI na mowę (Piper TTS)
+- **📱 Flutter Web UI** - piękny interfejs użytkownika
 
 ## 🏗️ Architektura
 
@@ -36,6 +37,7 @@
 │  │  - Speech-to-Text               │   │
 │  │  - Text-to-Speech               │   │
 │  │  - Voice Controls               │   │
+│  │  - Material Design              │   │
 │  └─────────────────────────────────┘   │
 │  ┌─────────────────────────────────┐   │
 │  │      FastAPI Endpoints          │   │  ← Port 8080
@@ -53,12 +55,6 @@
 │  │         Container               │   │  ← DI Container
 │  │  - 21 Services Registered       │   │
 │  │  - Dependency Injection         │   │
-│  └─────────────────────────────────┘   │
-│  ┌─────────────────────────────────┐   │
-│  │         DIService               │   │  ← DI Facade
-│  │  - Service Access               │   │
-│  │  - Lazy Loading                  │   │
-│  │  - Error Handling               │   │
 │  └─────────────────────────────────┘   │
 │  ┌─────────────────────────────────┐   │
 │  │      ChatAgentService           │   │  ← Google ADK Agent
@@ -87,6 +83,10 @@
 │  │  - ChatRepository               │   │
 │  └─────────────────────────────────┘   │
 └─────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────┐
+│           INFRASTRUCTURE LAYER         │
 │  ┌─────────────────────────────────┐   │
 │  │    Concrete Implementations     │   │
 │  │  - VoiceService (STT/TTS)      │   │
@@ -103,37 +103,48 @@
 - **🎤 Speech-to-Text** - Whisper (faster_whisper)
 - **🔊 Text-to-Speech** - Piper TTS
 - **🤖 AI Chat** - LM Studio (lokalny model)
-- **📱 Flutter UI** - aplikacja webowa
+- **📱 Flutter Web UI** - aplikacja webowa
 - **🔧 Dependency Injection** - 21 serwisów
 - **📊 Health Monitoring** - status serwisów
 - **🗄️ SQLite Database** - historia rozmów
 - **📧 Email Service** - wysyłanie emaili
+- **🌐 Google ADK Integration** - zaawansowany agent
+- **🔍 Vector Database** - Qdrant + embeddings
+- **📚 Knowledge Base** - RAG functionality
 
 ### 🚧 W planach
-- **🌐 React Frontend** - piękny UI
+- **🌐 React Frontend** - alternatywny UI
 - **🔐 Autentykacja** - JWT tokens
 - **☁️ Cloud Deployment** - Railway/Heroku
 - **📱 Mobile App** - Flutter mobile
 - **🎨 Custom Voices** - więcej głosów TTS
+- **🔗 Multi-language** - obsługa wielu języków
 
 ## 🛠️ Technologie
 
 ### Backend
 - **Python 3.10+** - główny język
 - **FastAPI** - web framework
+- **Google ADK** - agent framework
 - **Dependency Injector** - DI container
 - **SQLite** - baza danych
 - **Whisper** - Speech-to-Text
 - **Piper** - Text-to-Speech
+- **Qdrant** - vector database
+- **LM Studio** - lokalny model AI
 
 ### Frontend
 - **Flutter** - UI framework
 - **Web** - aplikacja webowa
 - **Material Design** - design system
+- **Web Audio API** - nagrywanie audio
+- **HTTP Client** - komunikacja z API
 
 ### AI
 - **LM Studio** - lokalny model AI
 - **Local Models** - wszystko działa offline
+- **Vector Embeddings** - LM Studio embeddings
+- **RAG** - Retrieval Augmented Generation
 
 ## 📦 Instalacja
 
@@ -148,33 +159,42 @@
 ```bash
 # Pobierz kod
 git clone https://github.com/Maggio333/ai-agent-starter-pack.git
-cd ATSReflectumAgentStarterPack/python_agent
+cd ai-agent-starter-pack
 
-# Zainstaluj zależności
+# Backend Python
 pip install -r requirements.txt
 
 # Uruchom aplikację
-python main.py
+# Terminal 1: Backend (wybierz jeden)
+python main_fastapi.py    # Clean FastAPI (zalecane)
+# LUB
+python main_adk.py        # Google ADK (zaawansowane)
+
+# Terminal 2: Frontend
+cd presentation/ui/flutter_voice_ui
+flutter run -d web-server --web-port 3000
 ```
 
-**📖 Pełna instrukcja**: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
+**📖 Pełna instrukcja**: [python_agent/docs/USER_GUIDE.md](python_agent/docs/USER_GUIDE.md)
 
 ## 📚 Documentation
 
-- **👥 User Guide**: [docs/USER_GUIDE.md](docs/USER_GUIDE.md) - Complete guide for non-technical users
-- **⚡ Quick Start**: [docs/QUICK_START_USER.md](docs/QUICK_START_USER.md) - 5-minute setup guide
-- **🔧 Troubleshooting**: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues and solutions
-- **🏗️ Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture overview
-- **🌐 API Reference**: [docs/API.md](docs/API.md) - Complete API documentation
-- **🛠️ Developer Guide**: [docs/QUICK_START.md](docs/QUICK_START.md) - Developer quick start
-- **🎯 Patterns**: [docs/ARCHITECTURAL_PATTERNS.md](docs/ARCHITECTURAL_PATTERNS.md) - Architectural patterns guide
-- **🛣️ Roadmap**: [docs/ROADMAP.md](docs/ROADMAP.md) - Development roadmap and future plans
+- **👥 User Guide**: [python_agent/docs/USER_GUIDE.md](python_agent/docs/USER_GUIDE.md) - Complete guide for non-technical users
+- **⚡ Quick Start**: [python_agent/docs/QUICK_START_USER.md](python_agent/docs/QUICK_START_USER.md) - 5-minute setup guide
+- **🆕 Simple Guide**: [python_agent/docs/README_SIMPLE.md](python_agent/docs/README_SIMPLE.md) - Ultra-simple guide for beginners
+- **🪟 Windows Setup**: [python_agent/docs/SETUP_WINDOWS.md](python_agent/docs/SETUP_WINDOWS.md) - Detailed Windows installation
+- **🔧 Troubleshooting**: [python_agent/docs/TROUBLESHOOTING.md](python_agent/docs/TROUBLESHOOTING.md) - Common issues and solutions
+- **🏗️ Architecture**: [python_agent/docs/ARCHITECTURE.md](python_agent/docs/ARCHITECTURE.md) - System architecture overview
+- **🌐 API Reference**: [python_agent/docs/API.md](python_agent/docs/API.md) - Complete API documentation
+- **🛠️ Developer Guide**: [python_agent/docs/QUICK_START.md](python_agent/docs/QUICK_START.md) - Developer quick start
+- **🎯 Patterns**: [python_agent/docs/ARCHITECTURAL_PATTERNS.md](python_agent/docs/ARCHITECTURAL_PATTERNS.md) - Architectural patterns guide
+- **🛣️ Roadmap**: [python_agent/docs/ROADMAP.md](python_agent/docs/ROADMAP.md) - Development roadmap and future plans
 
 ## 🎮 Użytkowanie
 
 1. **Uruchom LM Studio** - załaduj model AI
-2. **Uruchom Python Backend** - `python main.py`
-3. **Uruchom Flutter Frontend** - `flutter run -d web-server --web-port 3000`
+2. **Uruchom Python Backend** - `python main_fastapi.py` (zalecane) lub `python main_adk.py`
+3. **Uruchom Flutter Frontend** - `cd presentation/ui/flutter_voice_ui && flutter run -d web-server --web-port 3000`
 4. **Otwórz aplikację** - http://localhost:3000
 5. **Kliknij mikrofon** 🎤 i mów!
 
@@ -186,16 +206,19 @@ python main.py
 - LM Studio nie odpowiada → sprawdź czy serwer jest uruchomiony
 - Flutter nie działa → sprawdź `flutter doctor`
 
-**📖 Pełny przewodnik**: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+**📖 Pełny przewodnik**: [python_agent/docs/TROUBLESHOOTING.md](python_agent/docs/TROUBLESHOOTING.md)
 
 ## 📊 Status
 
 **✅ Gotowe:**
 - Backend API (31+ serwisów)
 - Voice processing (STT + TTS)
-- Flutter UI
+- Flutter Web UI
 - Dependency Injection
 - Health monitoring
+- Google ADK Integration
+- Vector Database
+- Knowledge Base
 
 **🚧 W trakcie:**
 - Dokumentacja
@@ -204,14 +227,14 @@ python main.py
 
 ## 🤝 Wsparcie
 
-- **📖 Dokumentacja**: [docs/](docs/)
+- **📖 Dokumentacja**: [python_agent/docs/](python_agent/docs/)
 - **🐛 Problemy**: GitHub Issues
 - **💼 LinkedIn**: [Arkadiusz Słota](https://www.linkedin.com/in/arkadiusz-s%C5%82ota-229551172/)
 - **🐙 GitHub**: [Maggio333](https://github.com/Maggio333)
 
 ## 📄 Licencja
 
-MIT License - zobacz [LICENSE](LICENSE)
+MIT License - zobacz [python_agent/LICENSE](python_agent/LICENSE)
 
 ---
 
