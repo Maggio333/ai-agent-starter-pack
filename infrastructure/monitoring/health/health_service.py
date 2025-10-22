@@ -156,11 +156,27 @@ class HealthService(IHealthService):
             
             overall_health = overall_result.value
             
+            # Get detailed health for all services
+            detailed_result = await self.get_detailed_health()
+            services_data = []
+            if detailed_result.is_success:
+                services_data = [
+                    {
+                        "service_name": check.service_name,
+                        "status": check.status.value,
+                        "response_time_ms": check.response_time_ms,
+                        "message": check.message,
+                        "last_check": check.timestamp.isoformat()
+                    }
+                    for check in detailed_result.value
+                ]
+            
             return Result.success({
                 "status": overall_health.status.value,
                 "message": overall_health.message,
                 "timestamp": overall_health.timestamp.isoformat(),
                 "response_time_ms": overall_health.response_time_ms,
+                "services": services_data,
                 "services_checked": overall_health.details.get("checked_services", 0),
                 "healthy_services": overall_health.details.get("healthy_services", 0),
                 "unhealthy_services": overall_health.details.get("unhealthy_services", 0),

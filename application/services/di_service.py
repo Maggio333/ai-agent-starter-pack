@@ -20,6 +20,7 @@ from application.services.knowledge_service import KnowledgeService
 from application.services.conversation_service import ConversationService
 from application.services.orchestration_service import OrchestrationService
 from infrastructure.ai.embeddings.embedding_factory import EmbeddingFactory, EmbeddingProvider
+from application.services.web_server_manager_service import WebServerManagerService
 
 class DIServiceInitializationError(Exception):
     """Custom exception for DI service initialization errors"""
@@ -47,7 +48,7 @@ class DIService(IDIService):
             self._embedding_service: Optional[Any] = None
             self._cache_service: Optional[MemoryCacheService] = None
             self._search_factory: Optional[SearchFactory] = None
-            self._search_service: Optional[Any] = None
+            self._web_server_manager_service: Optional[WebServerManagerService] = None
             self._health_service: Optional[HealthService] = None
             self._city_service: Optional[CityService] = None
             self._weather_service: Optional[WeatherService] = None
@@ -288,3 +289,9 @@ class DIService(IDIService):
             return Result.success(health_data)
         except Exception as e:
             return Result.error(f"Health check failed: {str(e)}")
+    
+    def get_web_server_manager_service(self) -> WebServerManagerService:
+        """Get web server manager service"""
+        if self._web_server_manager_service is None:
+            self._web_server_manager_service = self.container.web_server_manager_service()
+        return self._web_server_manager_service

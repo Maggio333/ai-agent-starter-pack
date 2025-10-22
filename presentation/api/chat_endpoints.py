@@ -7,6 +7,7 @@ from datetime import datetime
 import logging
 
 from application.services.di_service import DIService
+from application.container import Container
 from application.services.conversation_service import ConversationService
 from application.services.orchestration_service import OrchestrationService
 from infrastructure.monitoring.health.health_service import HealthService
@@ -25,21 +26,21 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Dependency injection
-def get_di_service() -> DIService:
-    """Get DI service instance"""
-    return DIService()
+def get_container() -> Container:
+    """Get Container instance"""
+    return Container()
 
-def get_conversation_service(di_service: DIService = Depends(get_di_service)) -> ConversationService:
+def get_conversation_service(container: Container = Depends(get_container)) -> ConversationService:
     """Get conversation service instance"""
-    return di_service.get_conversation_service()
+    return container.conversation_service()
 
-def get_orchestration_service(di_service: DIService = Depends(get_di_service)) -> OrchestrationService:
+def get_orchestration_service(container: Container = Depends(get_container)) -> OrchestrationService:
     """Get orchestration service instance"""
-    return di_service.get_orchestration_service()
+    return container.orchestration_service()
 
-def get_health_service(di_service: DIService = Depends(get_di_service)) -> HealthService:
+def get_health_service(container: Container = Depends(get_container)) -> HealthService:
     """Get health service instance"""
-    return di_service.get_health_service()
+    return container.health_service()
 
 
 # Session Management Endpoints
@@ -275,14 +276,14 @@ async def get_time(
 @router.get("/ping", response_model=SuccessResponse)
 async def ping():
     """Simple ping endpoint"""
-    return SuccessResponse(message="pong")
+    return SuccessResponse(message="pong", timestamp=datetime.now().isoformat())
 
 
 @router.post("/send")
 async def send_message(
     request: Dict[str, Any],
     orchestration_service: OrchestrationService = Depends(get_orchestration_service),
-    di_service: DIService = Depends(get_di_service)
+    container: Container = Depends(get_container)
 ):
     """Send a message to the AI agent using our LMStudioLLMService"""
     try:
@@ -293,7 +294,7 @@ async def send_message(
         logger.info(f"Received message: {message}")
         
         # Use our LLM service from DI
-        llm_service = di_service.get_llm_service()
+        llm_service = container.llm_service()
         
         # Create ChatMessage
         chat_message = ChatMessage(
@@ -320,6 +321,17 @@ async def send_message(
     except Exception as e:
         logger.error(f"Error processing message: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/chat/send")
+async def send_chat_message(
+    request: Dict[str, Any],
+    orchestration_service: OrchestrationService = Depends(get_orchestration_service),
+    container: Container = Depends(get_container)
+):
+    """Send a message to the AI agent - Flutter app endpoint"""
+    # Delegate to the main send_message function
+    return await send_message(request, orchestration_service, container)
 
 
 @router.get("/info")

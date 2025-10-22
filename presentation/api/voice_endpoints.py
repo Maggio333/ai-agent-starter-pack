@@ -8,18 +8,18 @@ import logging
 import os
 
 from infrastructure.services.voice_service import VoiceService
-from application.services.di_service import DIService
+from application.container import Container
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 def get_voice_service() -> VoiceService:
     """Dependency injection for voice service"""
-    di_service = DIService()
-    return di_service.get_voice_service()
+    container = Container()
+    return container.voice_service()
 
 
-@router.post("/voice/transcribe")
+@router.post("/transcribe")
 async def transcribe_audio(
     audio: UploadFile = File(...),
     language: str = Form("pl"),
@@ -46,7 +46,7 @@ async def transcribe_audio(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/voice/speak")
+@router.post("/speak")
 async def synthesize_speech(
     text: str = Form(...),
     voice: str = Form("pl-PL-default"),
@@ -69,7 +69,7 @@ async def synthesize_speech(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/voice/audio/{filename}")
+@router.get("/audio/{filename}")
 async def get_audio_file(filename: str):
     """
     Serve audio files from static directory
@@ -87,7 +87,7 @@ async def get_audio_file(filename: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/voice/health")
+@router.get("/health")
 async def voice_health_check(voice_service: VoiceService = Depends(get_voice_service)):
     """
     Health check for voice services

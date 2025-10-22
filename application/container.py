@@ -22,6 +22,7 @@ from application.services.chat_agent_service import ChatAgentService
 from infrastructure.services.text_cleaner_service import TextCleanerService
 from infrastructure.services.email_service import EmailService
 from infrastructure.services.voice_service import VoiceService
+from application.services.web_server_manager_service import WebServerManagerService
 
 class Container(containers.DeclarativeContainer):
     """Dependency Injection Container - używany przez DIService"""
@@ -226,6 +227,9 @@ class Container(containers.DeclarativeContainer):
     
     # Voice Service
     voice_service = providers.Singleton(VoiceService)
+    
+    # Web Server Manager Service
+    web_server_manager_service = providers.Singleton(WebServerManagerService)
     
     # Chat Agent Service
     chat_agent_service = providers.Singleton(

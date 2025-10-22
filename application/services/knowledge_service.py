@@ -113,7 +113,7 @@ class KnowledgeService(IKnowledgeService):
                         print(f"DEBUG: KnowledgeService - processing chunk {i+1}: {safe_text}...")
                         
                         results.append({
-                            "topic": chunk.topic,
+                            "topic": chunk.source or "unknown",  # Używamy source zamiast topic
                             "score": chunk.score,
                             "facts": [clean_text],
                             "total_facts": 1,
