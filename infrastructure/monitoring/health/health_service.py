@@ -10,10 +10,16 @@ from .qdrant_health_service import QdrantHealthService
 class HealthService(IHealthService):
     """Main health service that coordinates all health checks"""
     
-    def __init__(self):
+    def __init__(self, embedding_service=None, vector_db_service=None):
         super().__init__("SystemHealth")
         self.logger = logging.getLogger(__name__)
         self._health_services: List[IHealthService] = []
+        
+        # Register services if provided
+        if embedding_service:
+            self.register_embedding_service(embedding_service)
+        if vector_db_service:
+            self.register_qdrant_service(vector_db_service)
     
     def register_service(self, health_service: IHealthService) -> None:
         """Register a health service"""

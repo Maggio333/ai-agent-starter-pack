@@ -231,13 +231,21 @@ class OrchestrationService(IOrchestrationService):
                 return await self.process_weather_request(city)
             
             elif "time" in request_lower:
-                city = "Warsaw"  # Default city
+                city = "New York"  # Default city
                 if "krakow" in request_lower or "kraków" in request_lower:
                     city = "Krakow"
                 elif "warsaw" in request_lower or "warszawa" in request_lower:
                     city = "Warsaw"
                 elif "gdansk" in request_lower or "gdańsk" in request_lower:
                     city = "Gdansk"
+                elif "london" in request_lower:
+                    city = "London"
+                elif "tokyo" in request_lower:
+                    city = "Tokyo"
+                elif "sydney" in request_lower:
+                    city = "Sydney"
+                elif "moscow" in request_lower:
+                    city = "Moscow"
                 
                 return await self.process_time_request(city)
             

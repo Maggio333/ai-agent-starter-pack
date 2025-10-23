@@ -100,7 +100,7 @@ class QdrantService(IVectorDbService):
                 "payload": {
                     "text": chunk.text_chunk,
                     "score": chunk.score,
-                    "metadata": chunk.get_metadata().to_dict() if chunk.get_metadata() else {}
+                    "metadata": chunk.metadata if chunk.metadata else {}
                 }
             }
             points.append(point)

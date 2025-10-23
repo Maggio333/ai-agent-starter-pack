@@ -212,7 +212,11 @@ class Container(containers.DeclarativeContainer):
     )
     
     # Health Services
-    health_service = providers.Singleton(HealthService)
+    health_service = providers.Singleton(
+        HealthService,
+        embedding_service=embedding_service,
+        vector_db_service=vector_db_service
+    )
     
     # Application Services
     city_service = providers.Singleton(CityService)

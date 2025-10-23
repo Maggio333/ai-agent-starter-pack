@@ -7,11 +7,17 @@ class CollectionService(BaseQdrantService):
     """Service for managing Qdrant collections"""
     
     async def create_collection(self, collection_name: str, vector_size: int = 384, distance: str = "Cosine") -> Result[None, str]:
-        """Create a new collection"""
+        """Create a new collection if it doesn't exist"""
         self.logger.info(f"Creating collection: {collection_name}")
         
         if not self._validate_collection_name(collection_name):
             return Result.error(f"Invalid collection name: {collection_name}")
+        
+        # Check if collection already exists
+        exists_result = await self.collection_exists(collection_name)
+        if exists_result.is_success and exists_result.value:
+            self.logger.info(f"Collection already exists: {collection_name}")
+            return Result.success(None)
         
         # Ensure vector_size is an integer
         try:
@@ -69,6 +75,27 @@ class CollectionService(BaseQdrantService):
         else:
             self.logger.error(f"Failed to get collection info: {result.error}")
             return result
+    
+    async def collection_exists(self, collection_name: str) -> Result[bool, str]:
+        """Check if collection exists"""
+        self.logger.info(f"Checking if collection exists: {collection_name}")
+        
+        if not self._validate_collection_name(collection_name):
+            return Result.error(f"Invalid collection name: {collection_name}")
+        
+        result = await self._make_request("GET", f"/collections/{collection_name}")
+        
+        if result.is_success:
+            self.logger.info(f"Collection exists: {collection_name}")
+            return Result.success(True)
+        else:
+            # If collection doesn't exist, Qdrant returns 404
+            if "404" in str(result.error) or "Not found" in str(result.error):
+                self.logger.info(f"Collection does not exist: {collection_name}")
+                return Result.success(False)
+            else:
+                self.logger.error(f"Error checking collection existence: {result.error}")
+                return result
     
     async def list_collections(self) -> Result[List[str], str]:
         """List all collections"""

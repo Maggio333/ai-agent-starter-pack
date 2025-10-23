@@ -163,10 +163,20 @@ class SearchService(BaseQdrantService):
             safe_chunk_id = str(result.get("id", "")).encode('utf-8', errors='ignore').decode('utf-8')
             safe_score = result.get("score", 0.0)
             
+            # Extract metadata from payload
+            metadata = {}
+            if "metadata" in payload:
+                metadata = payload["metadata"]
+            elif "meta" in payload:
+                metadata = payload["meta"]
+            elif "Meta" in payload:
+                metadata = payload["Meta"]
+            
             chunk = RAGChunk(
                 text_chunk=clean_text,  # Use cleaned text
                 chat_messages=None,  # Would be populated from payload
                 chunk_id=safe_chunk_id,
+                metadata=metadata,  # Include metadata from payload
                 score=safe_score
             )
             chunks.append(chunk)
