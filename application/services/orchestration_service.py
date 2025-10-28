@@ -15,7 +15,7 @@ from .conversation_service import ConversationService
 class OrchestrationService(IOrchestrationService):
     """Microservice orchestrator that coordinates all other services"""
     
-    def __init__(self, conversation_service: ConversationService, vector_db_service = None):
+    def __init__(self, conversation_service: ConversationService, vector_db_service = None, text_cleaner_service = None):
         self.rop_service = ROPService()
         self.conversation_service = conversation_service
         
@@ -23,7 +23,7 @@ class OrchestrationService(IOrchestrationService):
         self.weather_service = WeatherService()
         self.time_service = TimeService()
         self.city_service = CityService()
-        self.knowledge_service = KnowledgeService(vector_db_service)
+        self.knowledge_service = KnowledgeService(vector_db_service, text_cleaner_service)
         
         # Service registry for easy access
         self._services = {
@@ -181,11 +181,11 @@ class OrchestrationService(IOrchestrationService):
         except Exception as e:
             return Result.error(f"Failed to process time request: {str(e)}")
     
-    async def process_knowledge_request(self, query: str, request_type: str = "search") -> Result[Dict[str, Any], str]:
+    async def process_knowledge_request(self, query: str, request_type: str = "search", limit: int = 5) -> Result[Dict[str, Any], str]:
         """Process knowledge base requests"""
         try:
             if request_type == "search":
-                result = await self.knowledge_service.search_knowledge_base(query)
+                result = await self.knowledge_service.search_knowledge_base(query, limit=limit)
             elif request_type == "add":
                 result = await self.knowledge_service.add_knowledge(query)
             elif request_type == "stats":

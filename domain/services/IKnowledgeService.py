@@ -7,7 +7,7 @@ class IKnowledgeService(ABC):  # Interfejs zgodny z konwencją C# dla czytelnoś
     """Interfejs serwisu zarządzania bazą wiedzy"""
     
     @abstractmethod
-    async def search_knowledge_base(self, query: str) -> Result[List[Dict[str, Any]], str]:
+    async def search_knowledge_base(self, query: str, limit: int = 5) -> Result[List[Dict[str, Any]], str]:
         """Wyszukuje w bazie wiedzy"""
         pass
     

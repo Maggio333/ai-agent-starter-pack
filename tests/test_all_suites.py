@@ -3,6 +3,7 @@
 Comprehensive Test Suite - All tests with collection checking
 """
 import asyncio
+import pytest
 from application.container import Container
 
 async def check_collection():
@@ -19,6 +20,7 @@ async def check_collection():
         print('❌ Kolekcja nie istnieje!')
         return False
 
+@pytest.mark.asyncio
 async def test_all():
     """Test all suites with collection monitoring"""
     print('🚀 Testuję wszystkie testy...')

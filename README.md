@@ -1,241 +1,396 @@
-# 🎤 Voice AI Assistant - Full Stack
+# 🎯 Voice AI Assistant
 
-**Voice AI Assistant** to kompletna aplikacja do rozmowy z sztuczną inteligencją używając głosu. Składa się z backendu Python (FastAPI + Google ADK) i frontendu Flutter Web.
+Zaawansowany system chatbot z architekturą Clean Architecture, integrujący Flutter frontend, FastAPI backend, bazę wektorową i inteligentną analizę kontekstu.
 
-## 🚀 Szybki Start
+## 🚀 Quick Start
 
-### Dla użytkowników (osoby nietechniczne)
-📖 **[Przewodnik użytkownika](docs/USER_GUIDE.md)** - kompletna instrukcja instalacji i użytkowania
-
-⚡ **[Szybki start](docs/QUICK_START_USER.md)** - instalacja w 5 minut
-
-🔧 **[Rozwiązywanie problemów](docs/TROUBLESHOOTING.md)** - pomoc gdy coś nie działa
-
-### Dla deweloperów
-⚡ **[Quick Start](docs/QUICK_START.md)** - szybkie uruchomienie dla deweloperów
-
-🏗️ **[Architektura](docs/ARCHITECTURE.md)** - opis architektury aplikacji
-
-📚 **[API](docs/API.md)** - dokumentacja API
-
-## 🎯 Co to jest?
-
-**Voice AI Assistant** składa się z:
-
-- **🎤 Speech-to-Text** - zamienia Twoją mowę na tekst (Whisper)
-- **🤖 AI Chat** - odpowiada na pytania używając lokalnego modelu AI (LM Studio)
-- **🔊 Text-to-Speech** - zamienia odpowiedź AI na mowę (Piper TTS)
-- **📱 Flutter Web UI** - piękny interfejs użytkownika
-
-## 🏗️ Architektura
-
-```
-┌─────────────────────────────────────────┐
-│           PRESENTATION LAYER            │
-│  ┌─────────────────────────────────┐   │
-│  │      Flutter Voice UI           │   │  ← Port 3000
-│  │  - Speech-to-Text               │   │
-│  │  - Text-to-Speech               │   │
-│  │  - Voice Controls               │   │
-│  │  - Material Design              │   │
-│  └─────────────────────────────────┘   │
-│  ┌─────────────────────────────────┐   │
-│  │      FastAPI Endpoints          │   │  ← Port 8080
-│  │  - /api/send                    │   │
-│  │  - /api/voice/transcribe       │   │
-│  │  - /api/voice/speak            │   │
-│  │  - Google ADK Integration      │   │
-│  └─────────────────────────────────┘   │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│           APPLICATION LAYER             │
-│  ┌─────────────────────────────────┐   │
-│  │         Container               │   │  ← DI Container
-│  │  - 21 Services Registered       │   │
-│  │  - Dependency Injection         │   │
-│  └─────────────────────────────────┘   │
-│  ┌─────────────────────────────────┐   │
-│  │      ChatAgentService           │   │  ← Google ADK Agent
-│  │  - Microservices Integration    │   │
-│  │  - Tool Calling                 │   │
-│  │  - ROP Patterns                 │   │
-│  └─────────────────────────────────┘   │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│             DOMAIN LAYER               │
-│  ┌─────────────────────────────────┐   │
-│  │         Entities                │   │  ← Business Objects
-│  │  - ChatMessage                  │   │
-│  │  - RAGChunk                     │   │
-│  │  - QualityLevel                 │   │
-│  └─────────────────────────────────┘   │
-│  ┌─────────────────────────────────┐   │
-│  │         Services                │   │  ← Business Logic
-│  │  - ROPService                   │   │
-│  │  - Interfaces (I*)              │   │
-│  └─────────────────────────────────┘   │
-│  ┌─────────────────────────────────┐   │
-│  │       Repositories              │   │  ← Data Access
-│  │  - ChatRepository               │   │
-│  └─────────────────────────────────┘   │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│           INFRASTRUCTURE LAYER         │
-│  ┌─────────────────────────────────┐   │
-│  │    Concrete Implementations     │   │
-│  │  - VoiceService (STT/TTS)      │   │
-│  │  - LMStudioLLMService          │   │
-│  │  - SqliteChatRepository         │   │
-│  │  - EmailService                 │   │
-│  └─────────────────────────────────┘   │
-└─────────────────────────────────────────┘
-```
-
-## 🎯 Funkcje
-
-### ✅ Zaimplementowane
-- **🎤 Speech-to-Text** - Whisper (faster_whisper)
-- **🔊 Text-to-Speech** - Piper TTS
-- **🤖 AI Chat** - LM Studio (lokalny model)
-- **📱 Flutter Web UI** - aplikacja webowa
-- **🔧 Dependency Injection** - 21 serwisów
-- **📊 Health Monitoring** - status serwisów
-- **🗄️ SQLite Database** - historia rozmów
-- **📧 Email Service** - wysyłanie emaili
-- **🌐 Google ADK Integration** - zaawansowany agent
-- **🔍 Vector Database** - Qdrant + embeddings
-- **📚 Knowledge Base** - RAG functionality
-
-### 🚧 W planach
-- **🌐 React Frontend** - alternatywny UI
-- **🔐 Autentykacja** - JWT tokens
-- **☁️ Cloud Deployment** - Railway/Heroku
-- **📱 Mobile App** - Flutter mobile
-- **🎨 Custom Voices** - więcej głosów TTS
-- **🔗 Multi-language** - obsługa wielu języków
-
-## 🛠️ Technologie
-
-### Backend
-- **Python 3.10+** - główny język
-- **FastAPI** - web framework
-- **Google ADK** - agent framework
-- **Dependency Injector** - DI container
-- **SQLite** - baza danych
-- **Whisper** - Speech-to-Text
-- **Piper** - Text-to-Speech
-- **Qdrant** - vector database
-- **LM Studio** - lokalny model AI
-
-### Frontend
-- **Flutter** - UI framework
-- **Web** - aplikacja webowa
-- **Material Design** - design system
-- **Web Audio API** - nagrywanie audio
-- **HTTP Client** - komunikacja z API
-
-### AI
-- **LM Studio** - lokalny model AI
-- **Local Models** - wszystko działa offline
-- **Vector Embeddings** - LM Studio embeddings
-- **RAG** - Retrieval Augmented Generation
-
-## 📦 Instalacja
-
-### Wymagania
-- **Windows 10/11** (64-bit)
-- **Python 3.10+**
-- **Flutter SDK**
-- **LM Studio**
-- **8GB RAM** minimum
-
-### Szybka instalacja
+### 1. Backend (FastAPI)
 ```bash
-# Pobierz kod
-git clone https://github.com/Maggio333/ai-agent-starter-pack.git
-cd ai-agent-starter-pack
+cd python_agent
+python main_fastapi.py
+```
+**Server**: http://localhost:8080
 
-# Backend Python
-pip install -r requirements.txt
+### 2. Frontend (Flutter)
+```bash
+cd presentation/ui/flutter_voice_ui
+flutter run -d web-server --web-port 3000
+```
+**UI**: http://localhost:3000
 
-# Uruchom aplikację
-# Terminal 1: Backend (wybierz jeden)
-python main_fastapi.py    # Clean FastAPI (zalecane)
-# LUB
-python main_adk.py        # Google ADK (zaawansowane)
+### 3. Vector Database (Qdrant)
+```bash
+docker run -p 6333:6333 qdrant/qdrant
+```
+**Vector DB**: http://localhost:6333
 
-# Terminal 2: Frontend
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    PRESENTATION LAYER                        │
+├─────────────────────────────────────────────────────────────┤
+│  Flutter UI (Voice + Chat)  │  FastAPI Endpoints           │
+│  - Microphone recording     │  - /api/chat/message         │
+│  - Text input              │  - /api/chat/sessions        │
+│  - Chat bubbles            │  - /api/vector/search        │
+│  - Audio playback          │  - /api/knowledge/stats      │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                    APPLICATION LAYER                       │
+├─────────────────────────────────────────────────────────────┤
+│  ConversationAnalysisAgent  │  OrchestrationService        │
+│  - Analyzes context        │  - Routes requests           │
+│  - Decides vector queries   │  - Coordinates services      │
+│  - Meta-thinking           │  - Process requests           │
+│                            │                               │
+│  ChatAgentService          │  ConversationService          │
+│  - Knowledge search        │  - Session management         │
+│  - Vector DB access        │  - Message history            │
+│  - Service coordination    │  - Conversation storage       │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                    INFRASTRUCTURE LAYER                     │
+├─────────────────────────────────────────────────────────────┤
+│  Vector Database (Qdrant)  │  LLM Service                  │
+│  - Embedding storage       │  - LM Studio/Ollama           │
+│  - Similarity search       │  - Text generation            │
+│  - Context retrieval        │  - Response processing        │
+│                            │                               │
+│  Text Processing           │  Audio Services               │
+│  - Text cleaning           │  - Speech-to-Text             │
+│  - Unicode handling        │  - Text-to-Speech             │
+│  - Query preprocessing     │  - Audio playback             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 🧠 Key Features
+
+### 🤖 Conversation Analysis Agent
+- **Inteligentna analiza kontekstu** rozmowy
+- **Automatyczne decydowanie** o zapytaniach do bazy wektorowej
+- **Metamyślenie refleksyjne** z idiomami matematycznymi
+- **Adaptacyjne wyszukiwanie** na podstawie kontekstu
+
+### 🎤 Voice Interface
+- **Nagrywanie głosu** z mikrofonu
+- **Wpisywanie tekstu** jako alternatywa
+- **Odtwarzanie odpowiedzi** AI
+- **Kontrola audio** (mute/unmute)
+
+### 💬 Chat Interface
+- **Bąbelki rozmowy** z avatarem
+- **Historia rozmów** w sesji
+- **Automatyczne przewijanie**
+- **Centralizowane zarządzanie kolorami**
+
+### 🔍 Vector Database Integration
+- **Wyszukiwanie kontekstowe** w bazie wektorowej
+- **Idiomy matematyczne** jako system prompt
+- **TopK=20** wyników dla idiomów
+- **Dynamiczne zapytania** na podstawie analizy
+
+## 🔄 Request Flow
+
+```
+1. 👤 User Input (Voice/Text)
+   ↓
+2. 📱 Flutter UI → HTTP POST /api/chat/message
+   ↓
+3. 🌐 FastAPI Backend Processing:
+   ├─ 📝 Create/Get Session
+   ├─ 🔍 Get Idioms from Vector DB (System Prompt)
+   ├─ 🎯 Build System Prompt with Reflective Idioms
+   ├─ 💬 Get Conversation History (2 interactions)
+   ├─ 🤖 Analysis Agent analyzes and decides vector query
+   ├─ 📚 Build Enhanced Message with Context
+   ├─ 🎭 Process through Orchestration Service
+   └─ 💾 Save Conversation to Session
+   ↓
+4. 📱 Flutter UI ← Response + Audio
+   ↓
+5. 🔊 Audio Playback (if not muted)
+```
+
+## 📊 System Components
+
+### Backend Services
+- **ConversationAnalysisAgent**: Analiza kontekstu i decydowanie o zapytaniach
+- **OrchestrationService**: Koordynacja wszystkich serwisów
+- **ChatAgentService**: Zarządzanie agentem i dostęp do wiedzy
+- **ConversationService**: Zarządzanie sesjami i historią rozmów
+- **KnowledgeService**: Integracja z bazą wektorową
+
+### Frontend Components
+- **ChatMessage**: Model danych dla wiadomości
+- **AppColors**: Centralizowane zarządzanie kolorami
+- **Voice Recording**: Nagrywanie i przetwarzanie audio
+- **Audio Playback**: Odtwarzanie odpowiedzi AI
+- **Chat Interface**: Interfejs czatu z bąbelkami
+
+### Infrastructure
+- **Vector Database (Qdrant)**: Przechowywanie embeddingów i wyszukiwanie
+- **LLM Service**: Generowanie odpowiedzi (LM Studio/Ollama)
+- **Text Processing**: Czyszczenie tekstu i obsługa Unicode
+- **Audio Services**: Speech-to-Text i Text-to-Speech
+
+## 🎯 Reflective Meta-Thinking System
+
+System używa idiomów matematycznych jako system prompt dla metamyślenia refleksyjnego:
+
+```
+⨁ # Operator sumy idiomatycznej (łączenie idiomów)
+Φ # Wektor znaczeniowy (meaning vector)
+Ψ # Ślad idiomu (idiom trace)
+Ξ # Baza semantyczna (semantic basis)
+Σ # Projekcja intencji (intent projection)
+Θ # Operator metryczny (np. iloczyn skalarny znaczeń)
+Ω # Przestrzeń funkcyjna idiomu (np. kontekst, intencja, emocja)
+... (20 idiomów)
+```
+
+### Context Building Process
+1. **Idioms**: 20 wyników z bazy wektorowej jako system prompt
+2. **History**: 2 poprzednie interakcje user/assistant
+3. **Current**: Obecne pytanie użytkownika
+4. **Analysis**: Agent analizuje wszystko i decyduje o vector query
+
+## 📱 Flutter Frontend
+
+### Features
+- **Voice Recording**: Nagrywanie głosu z mikrofonu
+- **Text Input**: Wpisywanie tekstu jako alternatywa
+- **Chat Interface**: Bąbelki rozmowy z avatarem i timestampami
+- **Audio Playback**: Odtwarzanie odpowiedzi AI
+- **Mute Control**: Wyłączanie/włączanie audio
+- **Session Management**: Automatyczne zarządzanie sesjami
+- **Centralized Colors**: Centralizowane zarządzanie kolorami
+
+### UI Components
+```dart
+class ChatMessage {
+  final String text;
+  final bool isUser;
+  final DateTime timestamp;
+  final String? audioUrl;
+}
+
+class AppColors {
+  static const Color userMessageBg = Color(0xFFB8E6B8);
+  static const Color aiMessageBg = Color(0xFFF0F8FF);
+  // ... więcej kolorów
+}
+```
+
+## 🌐 FastAPI Backend
+
+### Key Endpoints
+- `POST /api/chat/message` - Główne przetwarzanie wiadomości
+- `GET /api/chat/sessions` - Zarządzanie sesjami
+- `POST /api/vector/search` - Wyszukiwanie w bazie wektorowej
+- `GET /api/knowledge/stats` - Statystyki bazy wiedzy
+- `GET /api/capabilities` - Możliwości serwisów
+
+### Dependency Injection
+```python
+# Container setup
+chat_agent_service = providers.Singleton(ChatAgentService, ...)
+conversation_analysis_agent = providers.Singleton(ConversationAnalysisAgent, ...)
+orchestration_service = providers.Singleton(OrchestrationService, ...)
+```
+
+## 🔍 Vector Database Integration
+
+### Configuration
+- **Provider**: Qdrant
+- **URL**: http://localhost:6333
+- **Collection**: chat_collection
+- **TopK**: 20 wyników dla idiomów, zmienne dla analizy
+
+### Search Process
+1. **Idioms Search**: Hardcoded query dla refleksyjnych idiomów
+2. **Analysis Search**: Dynamiczne zapytanie na podstawie analizy konwersacji
+3. **Results Processing**: Konwersja do formatu bazy wiedzy
+4. **Context Building**: Integracja do system prompt
+
+## 🎭 Service Orchestration
+
+### OrchestrationService
+Koordynuje wszystkie serwisy i routuje żądania:
+- **Weather Service**: Pogoda dla miast
+- **Time Service**: Czas i strefy czasowe
+- **City Service**: Informacje o miastach
+- **Knowledge Service**: Baza wiedzy i vector search
+- **Conversation Service**: Zarządzanie rozmowami
+
+## 📊 Session Management
+
+### ConversationService
+- **Session Creation**: Automatyczne tworzenie sesji
+- **Message Storage**: Przechowywanie historii rozmów
+- **Context Retrieval**: Pobieranie kontekstu dla analizy
+- **Session Cleanup**: Czyszczenie nieaktywnych sesji
+
+## 🔧 Configuration
+
+### Environment Variables
+```bash
+# LLM Configuration
+LLM_PROVIDER=lmstudio
+LLM_PROXY_URL=http://127.0.0.1:8123
+LLM_MODEL_NAME=model:1
+
+# Vector Database
+VECTOR_DB_URL=http://localhost:6333
+VECTOR_DB_COLLECTION=chat_collection
+
+# Server Configuration
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8080
+```
+
+### Dependencies
+```python
+# Core dependencies
+fastapi>=0.104.0
+uvicorn>=0.24.0
+qdrant-client>=1.6.0
+dependency-injector>=4.41.0
+
+# Flutter dependencies
+flutter: ^3.16.0
+http: ^1.1.0
+record: ^5.0.4
+audioplayers: ^5.2.1
+```
+
+## 🚀 Deployment
+
+### Backend (FastAPI)
+```bash
+cd python_agent
+python main_fastapi.py
+```
+
+### Frontend (Flutter)
+```bash
 cd presentation/ui/flutter_voice_ui
 flutter run -d web-server --web-port 3000
 ```
 
-**📖 Pełna instrukcja**: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
+### Vector Database (Qdrant)
+```bash
+docker run -p 6333:6333 qdrant/qdrant
+```
+
+## 📈 Performance Metrics
+
+### Response Times
+- **Vector Search**: ~200-500ms
+- **LLM Processing**: ~1-3s
+- **Total Response**: ~2-4s
+
+### Scalability
+- **Concurrent Sessions**: 100+
+- **Vector Search**: 20 wyników na zapytanie
+- **Memory Usage**: ~500MB base
+
+## 🐛 Troubleshooting
+
+### Common Issues
+1. **Port Conflicts**: Sprawdź czy porty 8080, 3000, 6333 są wolne
+2. **Vector DB Connection**: Sprawdź czy Qdrant działa
+3. **LLM Service**: Sprawdź czy LM Studio/Ollama działa
+4. **Audio Issues**: Sprawdź uprawnienia mikrofonu
+
+### Debug Mode
+```python
+# Enable debug logging
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+
+### Debug Tools
+Projekt zawiera narzędzia debugowe w katalogu `tests/`:
+
+```bash
+# Analiza struktury danych z bazy wektorowej
+python tests/check_chunks.py
+
+# Monitor logów FastAPI w czasie rzeczywistym
+python tests/check_debug_logs.py
+
+# Analiza promptów wysyłanych do LLM
+python tests/check_llm_input.py
+
+# Test endpointów API
+python tests/test_endpoint.py
+```
+
+**Więcej informacji:** [Debug Tools Documentation](docs/DEBUG_TOOLS.md)
 
 ## 📚 Documentation
 
-- **👥 User Guide**: [docs/USER_GUIDE.md](docs/USER_GUIDE.md) - Complete guide for non-technical users
-- **⚡ Quick Start**: [docs/QUICK_START_USER.md](docs/QUICK_START_USER.md) - 5-minute setup guide
-- **🆕 Simple Guide**: [docs/README_SIMPLE.md](docs/README_SIMPLE.md) - Ultra-simple guide for beginners
-- **🪟 Windows Setup**: [docs/SETUP_WINDOWS.md](docs/SETUP_WINDOWS.md) - Detailed Windows installation
-- **🔧 Troubleshooting**: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues and solutions
-- **🏗️ Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture overview
-- **🌐 API Reference**: [docs/API.md](docs/API.md) - Complete API documentation
-- **🛠️ Developer Guide**: [docs/QUICK_START.md](docs/QUICK_START.md) - Developer quick start
-- **🎯 Patterns**: [docs/ARCHITECTURAL_PATTERNS.md](docs/ARCHITECTURAL_PATTERNS.md) - Architectural patterns guide
-- **🛣️ Roadmap**: [docs/ROADMAP.md](docs/ROADMAP.md) - Development roadmap and future plans
+- **[Project Overview](docs/PROJECT_OVERVIEW.md)** - Przegląd projektu i funkcjonalności
+- **[Architecture](docs/ARCHITECTURE.md)** - Szczegółowa architektura systemu
+- **[API Endpoints](docs/API_ENDPOINTS.md)** - Dokumentacja REST API
+- **[Flutter Voice UI](docs/FLUTTER_VOICE_UI.md)** - Dokumentacja frontend Flutter
+- **[Debug Tools](docs/DEBUG_TOOLS.md)** - Narzędzia debugowe i analityczne
 
-## 🎮 Użytkowanie
+## 🔮 Future Enhancements
 
-1. **Uruchom LM Studio** - załaduj model AI
-2. **Uruchom Python Backend** - `python main_fastapi.py` (zalecane) lub `python main_adk.py`
-3. **Uruchom Flutter Frontend** - `cd presentation/ui/flutter_voice_ui && flutter run -d web-server --web-port 3000`
-4. **Otwórz aplikację** - http://localhost:3000
-5. **Kliknij mikrofon** 🎤 i mów!
+### Planned Features
+1. **Multi-language Support**: Obsługa wielu języków
+2. **Advanced Analytics**: Szczegółowe analizy rozmów
+3. **Custom Idioms**: Użytkownik może dodawać własne idiomy
+4. **Voice Cloning**: Klonowanie głosu użytkownika
+5. **Real-time Collaboration**: Współpraca w czasie rzeczywistym
 
-## 🔧 Rozwiązywanie problemów
+### Technical Improvements
+1. **Caching**: Cache dla vector search
+2. **Streaming**: Streaming odpowiedzi
+3. **Batch Processing**: Przetwarzanie wsadowe
+4. **Monitoring**: Zaawansowane monitorowanie
+5. **Testing**: Kompleksowe testy
 
-**Najczęstsze problemy:**
-- Port zajęty → zabij proces używający portu
-- Python nie działa → sprawdź instalację i PATH
-- LM Studio nie odpowiada → sprawdź czy serwer jest uruchomiony
-- Flutter nie działa → sprawdź `flutter doctor`
+## 📝 Changelog
 
-**📖 Pełny przewodnik**: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+### v1.0.0 (2024-01-01)
+- ✅ Initial implementation
+- ✅ Flutter voice UI with microphone and chat interface
+- ✅ FastAPI backend with Clean Architecture
+- ✅ Vector database integration (Qdrant)
+- ✅ Conversation Analysis Agent for intelligent context analysis
+- ✅ Reflective meta-thinking system with mathematical idioms
+- ✅ Session management and conversation history
+- ✅ Audio processing (Speech-to-Text, Text-to-Speech)
+- ✅ Centralized color management
+- ✅ Error handling and fallbacks
+- ✅ Health checks and monitoring
 
-## 📊 Status
+## 🤝 Contributing
 
-**✅ Gotowe:**
-- Backend API (31+ serwisów)
-- Voice processing (STT + TTS)
-- Flutter Web UI
-- Dependency Injection
-- Health monitoring
-- Google ADK Integration
-- Vector Database
-- Knowledge Base
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
-**🚧 W trakcie:**
-- Dokumentacja
-- Testy automatyczne
-- Deployment
+## 📄 License
 
-## 🤝 Wsparcie
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- **📖 Dokumentacja**: [docs/](docs/)
-- **🐛 Problemy**: GitHub Issues
-- **💼 LinkedIn**: [Arkadiusz Słota](https://www.linkedin.com/in/arkadiusz-s%C5%82ota-229551172/)
-- **🐙 GitHub**: [Maggio333](https://github.com/Maggio333)
+## 📞 Support
 
-## 📄 Licencja
-
-MIT License - zobacz [python_agent/LICENSE](python_agent/LICENSE)
+For support and questions:
+- Create an issue in the repository
+- Check the documentation
+- Review the troubleshooting guide
 
 ---
 
-**Miłego używania Voice AI Assistant!** 🎉🎤🤖
+**Last Updated**: 2024-01-01  
+**Version**: 1.0.0  
+**Status**: Production Ready

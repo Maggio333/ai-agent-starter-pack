@@ -38,7 +38,7 @@ class LMStudioLLMService(BaseLLMService):
                 "stream": False
             }
             
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(self.chat_endpoint, json=payload)
                 response.raise_for_status()
                 
@@ -117,7 +117,7 @@ class LMStudioLLMService(BaseLLMService):
                 "stream": False
             }
             
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(self.chat_endpoint, json=payload)
                 response.raise_for_status()
                 

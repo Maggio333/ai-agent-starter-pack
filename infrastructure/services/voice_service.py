@@ -6,7 +6,7 @@ import os
 import logging
 from pathlib import Path
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, Tuple
 
 # STT imports
@@ -85,6 +85,49 @@ class VoiceService:
                 logger.error(f"Traceback: {traceback.format_exc()}")
                 _piper_model = None
         return _piper_model
+    
+    def _cleanup_old_audio_files(self, static_dir: Path, max_age_hours: int = 24, delete_all: bool = False):
+        """Remove audio files older than max_age_hours, or all files if delete_all=True"""
+        try:
+            if not static_dir.exists():
+                return
+            
+            removed_count = 0
+            total_files = 0
+            
+            if delete_all:
+                # Usuń wszystkie pliki audio
+                for audio_file in static_dir.glob("*.wav"):
+                    total_files += 1
+                    try:
+                        audio_file.unlink()
+                        removed_count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to remove audio file {audio_file}: {e}")
+                
+                if removed_count > 0:
+                    logger.info(f"Deleted all {removed_count} audio files")
+            else:
+                # Usuń tylko stare pliki
+                current_time = datetime.now()
+                max_age = timedelta(hours=max_age_hours)
+                
+                for audio_file in static_dir.glob("*.wav"):
+                    total_files += 1
+                    try:
+                        file_time = datetime.fromtimestamp(audio_file.stat().st_mtime)
+                        if current_time - file_time > max_age:
+                            audio_file.unlink()
+                            removed_count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to remove old audio file {audio_file}: {e}")
+                
+                if removed_count > 0:
+                    logger.info(f"Cleaned up {removed_count} old audio files (out of {total_files} total)")
+                else:
+                    logger.info(f"Audio cleanup checked: {total_files} files, none older than {max_age_hours}h")
+        except Exception as e:
+            logger.error(f"Failed to cleanup old audio files: {e}")
     
     async def transcribe_audio(self, audio_content: bytes, language: str = "pl") -> Dict[str, Any]:
         """Transcribe audio to text using Whisper"""
@@ -184,6 +227,9 @@ class VoiceService:
             # Create static audio directory if not exists
             static_dir = Path("static/audio")
             static_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Cleanup ALL old audio files before creating new one
+            self._cleanup_old_audio_files(static_dir, delete_all=True)
             
             audio_path = static_dir / audio_filename
             

@@ -25,43 +25,9 @@ class KnowledgeService(IKnowledgeService):
         else:
             self.logger.warning("Vector DB service is None - will use local knowledge base only")
         
-        self._knowledge_base = {
-            "artificial intelligence": [
-                "AI is the simulation of human intelligence in machines",
-                "Machine learning is a subset of AI that focuses on algorithms",
-                "Deep learning uses neural networks with multiple layers",
-                "Natural language processing enables computers to understand human language"
-            ],
-            "programming": [
-                "Python is a high-level, interpreted programming language",
-                "C# is a modern, object-oriented programming language developed by Microsoft",
-                "JavaScript is a programming language that is one of the core technologies of the World Wide Web",
-                "Java is a class-based, object-oriented programming language designed for having as few implementation dependencies as possible"
-            ],
-            "cities": [
-                "New York City is the most populous city in the United States",
-                "London is the capital and largest city of England and the United Kingdom",
-                "Tokyo is the capital and most populous prefecture of Japan",
-                "Paris is the capital and most populous city of France",
-                "Sydney is the capital city of New South Wales and the most populous city in Australia",
-                "Moscow is the capital and largest city of Russia"
-            ],
-            "weather": [
-                "Weather is the state of the atmosphere, describing for example the degree to which it is hot or cold, wet or dry, calm or stormy, clear or cloudy.",
-                "Climate is the long-term average of weather, typically averaged over a period of 30 years.",
-                "Temperature is a physical quantity that expresses hot and cold.",
-                "Humidity is the amount of water vapor in the air."
-            ],
-            "technology": [
-                "Technology is the application of scientific knowledge for practical purposes, especially in industry.",
-                "The internet is a global computer network providing a variety of information and communication facilities.",
-                "Cloud computing is the on-demand availability of computer system resources, especially data storage and computing power, without direct active management by the user.",
-                "Blockchain is a decentralized, distributed, and often public, digital ledger that is used to record transactions across many computers so that any involved record cannot be altered retroactively, without the alteration of all subsequent blocks and the consensus of the network."
-            ]
-        }
         self._search_history = []
     
-    async def search_knowledge_base(self, query: str) -> Result[List[Dict[str, Any]], str]:
+    async def search_knowledge_base(self, query: str, limit: int = 5) -> Result[List[Dict[str, Any]], str]:
         """Search knowledge base using vector database and ROP patterns"""
         try:
             query_lower = query.lower().strip()
@@ -95,7 +61,7 @@ class KnowledgeService(IKnowledgeService):
                 print(f"DEBUG: KnowledgeService - vector_db_service is available, searching for: '{clean_query[:100]}...'")
                 
                 # Search vector database directly with cleaned query
-                vector_results = await self.vector_db_service.search(clean_query, limit=5)
+                vector_results = await self.vector_db_service.search(clean_query, limit=limit)
                 self.logger.info(f"KnowledgeService - vector search result: success={vector_results.is_success}, value_count={len(vector_results.value) if vector_results.is_success else 0}")
                 print(f"DEBUG: KnowledgeService - vector search result: success={vector_results.is_success}, value_count={len(vector_results.value) if vector_results.is_success else 0}")
                 
@@ -126,122 +92,64 @@ class KnowledgeService(IKnowledgeService):
                 else:
                     self.logger.warning("KnowledgeService - Vector database search returned no results or failed.")
                     print("DEBUG: KnowledgeService - Vector database search returned no results or failed.")
-                    # Fallback to local knowledge base if vector search fails or returns no results
-                    return self._search_local_knowledge_base(query_lower)
+                    # No fallback - return empty results
+                    return Result.success([])
             else:
-                self.logger.warning("KnowledgeService - Vector DB service not available, using local knowledge base only.")
-                print("DEBUG: KnowledgeService - Vector DB service not available, using local knowledge base only.")
-                return self._search_local_knowledge_base(query_lower)
+                self.logger.warning("KnowledgeService - Vector DB service not available.")
+                print("DEBUG: KnowledgeService - Vector DB service not available.")
+                # No fallback - return empty results
+                return Result.success([])
         except Exception as e:
             error_message = f"Failed to search knowledge base: {str(e)}"
             self.logger.error(error_message)
             print(f"ERROR: KnowledgeService - {error_message}")
             return Result.error(error_message)
     
-    def _search_local_knowledge_base(self, query: str) -> Result[List[Dict[str, Any]], str]:
-        """Search local knowledge base (mock data)"""
-        self.logger.info(f"Searching local knowledge base for: '{query}'")
-        results = []
-        for topic, facts in self._knowledge_base.items():
-            if query in topic.lower():
-                results.append({
-                    "topic": topic,
-                    "score": 1.0,  # Perfect match for local search
-                    "facts": facts,
-                    "total_facts": len(facts),
-                    "source": "local_kb"
-                })
-            else:
-                for fact in facts:
-                    if query in fact.lower():
-                        results.append({
-                            "topic": topic,
-                            "score": 0.8,  # Partial match for local search
-                            "facts": [fact],
-                            "total_facts": 1,
-                            "source": "local_kb"
-                        })
-        
-        if results:
-            self.logger.info(f"Found {len(results)} results in local knowledge base.")
-            return Result.success(results)
-        else:
-            self.logger.warning("No results found in local knowledge base.")
-            return Result.error("No results found in local knowledge base.")
-    
     async def add_knowledge(self, topic: str, facts: List[str]) -> Result[bool, str]:
-        """Add knowledge to the base"""
-        try:
-            if topic not in self._knowledge_base:
-                self._knowledge_base[topic] = []
-            self._knowledge_base[topic].extend(facts)
-            return Result.success(True)
-        except Exception as e:
-            return Result.error(f"Failed to add knowledge: {str(e)}")
+        """Add knowledge to the base - not implemented (vector DB only)"""
+        self.logger.warning("add_knowledge not implemented - using vector DB only")
+        return Result.success(True)
     
     async def get_knowledge_stats(self) -> Result[Dict[str, Any], str]:
-        """Get statistics about the knowledge base"""
+        """Get knowledge base statistics"""
         try:
-            total_topics = len(self._knowledge_base)
-            total_facts = sum(len(facts) for facts in self._knowledge_base.values())
-            average_facts_per_topic = total_facts / total_topics if total_topics > 0 else 0
-            
             stats = {
-                "total_topics": total_topics,
-                "total_facts": total_facts,
-                "topics": list(self._knowledge_base.keys()),
-                "average_facts_per_topic": average_facts_per_topic,
-                "search_history_count": len(self._search_history),
-                "last_search": self._search_history[-1] if self._search_history else None
+                'vector_db_available': self.vector_db_service is not None,
+                'text_cleaner_available': self.text_cleaner_service is not None,
+                'search_history_count': len(self._search_history),
+                'service_type': 'vector_db_only'
             }
             return Result.success(stats)
         except Exception as e:
-            error_message = f"Failed to get knowledge stats: {str(e)}"
-            self.logger.error(error_message)
-            return Result.error(error_message)
+            return Result.error(f"Failed to get knowledge stats: {str(e)}")
     
     async def get_topic_facts(self, topic: str) -> Result[List[str], str]:
-        """Get facts for a specific topic"""
-        try:
-            if topic in self._knowledge_base:
-                return Result.success(self._knowledge_base[topic])
-            else:
-                return Result.error(f"Topic '{topic}' not found")
-        except Exception as e:
-            return Result.error(f"Failed to get topic facts: {str(e)}")
+        """Get facts for a topic - not implemented (vector DB only)"""
+        self.logger.warning("get_topic_facts not implemented - using vector DB only")
+        return Result.success([])
     
     async def search_similar_topics(self, topic: str) -> Result[List[Dict[str, Any]], str]:
-        """Search for similar topics"""
-        try:
-            similar_topics = []
-            for t in self._knowledge_base.keys():
-                if topic.lower() in t.lower() or t.lower() in topic.lower():
-                    similar_topics.append({
-                        "topic": t,
-                        "similarity": 0.8,
-                        "facts_count": len(self._knowledge_base[t])
-                    })
-            return Result.success(similar_topics)
-        except Exception as e:
-            return Result.error(f"Failed to search similar topics: {str(e)}")
+        """Search similar topics - not implemented (vector DB only)"""
+        self.logger.warning("search_similar_topics not implemented - using vector DB only")
+        return Result.success([])
     
     async def create_rag_chunk(self, text: str, topic: str) -> Result[Dict[str, Any], str]:
-        """Create a RAG chunk"""
-        try:
-            chunk = {
-                "text": text,
-                "topic": topic,
-                "timestamp": datetime.now().isoformat(),
-                "id": f"chunk_{len(self._search_history)}"
-            }
-            return Result.success(chunk)
-        except Exception as e:
-            return Result.error(f"Failed to create RAG chunk: {str(e)}")
+        """Create RAG chunk - not implemented (vector DB only)"""
+        self.logger.warning("create_rag_chunk not implemented - using vector DB only")
+        return Result.success({"text": text, "topic": topic, "created_at": datetime.now().isoformat()})
     
     async def get_search_history(self) -> Result[List[Dict[str, Any]], str]:
         """Get search history"""
         try:
-            return Result.success(self._search_history)
+            history = [
+                {
+                    "query": entry.get("query", ""),
+                    "timestamp": entry.get("timestamp", ""),
+                    "results_count": entry.get("results_count", 0)
+                }
+                for entry in self._search_history
+            ]
+            return Result.success(history)
         except Exception as e:
             return Result.error(f"Failed to get search history: {str(e)}")
     
@@ -254,17 +162,14 @@ class KnowledgeService(IKnowledgeService):
             return Result.error(f"Failed to clear search history: {str(e)}")
     
     async def export_knowledge_base(self) -> Result[Dict[str, Any], str]:
-        """Export knowledge base"""
-        try:
-            export_data = {
-                "knowledge_base": self._knowledge_base,
-                "search_history": self._search_history,
-                "export_timestamp": datetime.now().isoformat()
-            }
-            return Result.success(export_data)
-        except Exception as e:
-            return Result.error(f"Failed to export knowledge base: {str(e)}")
-    
+        """Export knowledge base - not implemented (vector DB only)"""
+        self.logger.warning("export_knowledge_base not implemented - using vector DB only")
+        return Result.success({
+            "message": "Vector DB only mode - no local knowledge base to export",
+            "vector_db_available": self.vector_db_service is not None,
+            "exported_at": datetime.now().isoformat()
+        })
+
     async def health_check(self) -> Result[Dict[str, Any], str]:
         """Check service health"""
         try:
@@ -273,7 +178,7 @@ class KnowledgeService(IKnowledgeService):
                 'service': self.__class__.__name__,
                 'vector_db_available': self.vector_db_service is not None,
                 'text_cleaner_available': self.text_cleaner_service is not None,
-                'knowledge_base_size': len(self._knowledge_base)
+                'search_history_count': len(self._search_history)
             }
             return Result.success(health_data)
         except Exception as e:

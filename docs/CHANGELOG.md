@@ -99,9 +99,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2025-01-18
+
+### ✅ **Added**
+- **SystemPromptsService** - Centralized service for all hardcoded RAG strings and system prompts
+- **JSONEmbeddingService** - Service to parse LLM JSON responses and generate embeddings for specific fields
+- **Dynamic RAG** - Intelligent context analysis that generates vector queries based on conversation
+- **Audio cleanup** - Automatic deletion of all audio files when creating new ones (prevents disk space issues)
+- **Enhanced logging** - Detailed logging for RAG context being added to LLM
+- **RAG context preview** - Full logging of what content from vector database is being added to LLM context
+
+### 🔄 **Changed**
+- **Refactored PromptService** to use SystemPromptsService for all hardcoded strings
+- **Reduced score_threshold** from 0.85 to 0.75 for better result quantity in vector search
+- **Fixed RAGResult.from_vector_result** to properly extract content from 'facts' list
+- **Idioms prompt** updated from descriptive to action-oriented (AI uses idioms directly instead of mentioning them)
+
+### 🐛 **Fixed**
+- **RAG content extraction** - Fixed issue where RAGResult.from_vector_result was not extracting content from 'facts' field
+- **Audio cleanup** - All audio files are now deleted before creating new ones to prevent disk space issues
+- **Unicode errors** in logging - Changed query strings to use safe ASCII characters for logging
+- **RAG context logging** - Added detailed logging showing exactly what content is being added to LLM context
+
+### 📚 **Documentation**
+- **SYSTEM_PROMPTS_SERVICE.md** - Documentation for centralized system prompts service
+- **JSON_EMBEDDING_SERVICE.md** - Documentation for JSON parsing and embedding service
+- **Updated CHANGELOG.md** with latest changes
+
+### 🔧 **Technical Details**
+- **SystemPromptsService**: Centralizes all hardcoded RAG strings in `domain/services/SystemPromptsService.py`
+- **JSONEmbeddingService**: Parses LLM JSON responses and generates embeddings in `application/services/json_embedding_service.py`
+- **DynamicRAGService**: Enhanced with JSONEmbeddingService for intelligent query generation
+- **VoiceService**: Automatic cleanup of all audio files before creating new ones
+
+---
+
 ## [Unreleased]
 
 ### 🔮 **Planned Features**
+- **Fix conversation saving** - 'coroutine' object has no attribute 'bind' error
 - **Hot reload** for development
 - **Web UI** interface
 - **Docker** containerization

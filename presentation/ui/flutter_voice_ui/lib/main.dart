@@ -7,6 +7,69 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:developer' as developer;
 import 'dart:html' as html;
+import 'dart:convert' show utf8;
+import 'dart:async';
+import 'text_formatter.dart';
+
+// Color palette - Pastel Elegant Theme
+class AppColors {
+  // User message colors
+  static const Color userMessageBg = Color(0xFFB8E6B8);
+  static const Color userMessageText = Color(0xFF2D5A2D);
+  static const Color userMessageTimestamp = Color(0xFF4A7C4A);
+  static const Color userAvatarBg = Color(0xFFE8F5E8);
+  static const Color userAvatarIcon = Color(0xFF58D68D);
+  
+  // AI message colors - Dark theme
+  static const Color aiMessageBg = Color(0xFF404040);
+  static const Color aiMessageText = Color(0xFFE8E8E8);
+  static const Color aiMessageTimestamp = Color(0xFFB0B0B0);
+  static const Color aiAvatarBg = Color(0xFF4A4A4A);
+  static const Color aiAvatarIcon = Color(0xFF7DD3FC);
+  
+  // Button colors - Dark theme
+  static const Color sendButton = Color(0xFF7DD3FC);
+  static const Color micButtonActive = Color(0xFF58D68D);
+  static const Color micButtonRecording = Color(0xFFE74C3C);
+  
+  // Mute checkbox colors
+  static const Color muteBgActive = Color(0xFFE8F8F5);
+  static const Color muteBgInactive = Color(0xFFFADBD8);
+  static const Color muteBorderActive = Color(0xFF58D68D);
+  static const Color muteBorderInactive = Color(0xFFE74C3C);
+  static const Color muteTextActive = Color(0xFF58D68D);
+  static const Color muteTextInactive = Color(0xFFE74C3C);
+  static const Color muteCheckbox = Color(0xFF58D68D);
+  
+  // Input field colors
+  static const Color inputFieldBg = Color(0xFFF8F9FA);
+  static const Color inputFieldBorder = Color(0xFFD5DBDB);
+  
+  // Status colors
+  static const Color statusRecording = Color(0xFFE74C3C);
+  static const Color statusLoading = Color(0xFFF39C12);
+  static const Color statusPlaying = Color(0xFF58D68D);
+  
+  // Background colors - Dark theme
+  static const Color appBackground = Color(0xFF1A1A1A);
+  static const Color chatBackground = Color(0xFF2D2D2D);
+  static const Color inputAreaBackground = Color(0xFF3A3A3A);
+}
+
+// Chat message model
+class ChatMessage {
+  final String text;
+  final bool isUser;
+  final DateTime timestamp;
+  final String? audioUrl;
+
+  ChatMessage({
+    required this.text,
+    required this.isUser,
+    required this.timestamp,
+    this.audioUrl,
+  });
+}
 
 void main() {
   runApp(const VoiceApp());
@@ -38,19 +101,343 @@ class VoiceHomePage extends StatefulWidget {
 class _VoiceHomePageState extends State<VoiceHomePage> {
   final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _player = AudioPlayer();
+  final ScrollController _scrollController = ScrollController();
+  final TextEditingController _textController = TextEditingController();
   
   bool _isRecording = false;
   bool _isPlaying = false;
-  String _transcript = '';
-  String _aiResponse = '';
   bool _isLoading = false;
+  bool _isMuted = false;
   html.MediaRecorder? _mediaRecorder;
+  
+  // Chat messages list
+  List<ChatMessage> _messages = [];
+  
+  // Vector database context for current conversation
+  List<Map<String, String>> _vectorContext = [];
+  
+  // Debug panel
+  bool _showDebugPanel = false;
+  List<String> _debugLogs = [];
+  
+  // Voice streaming
+  bool _isVoiceStreaming = false;
+  String _currentTranscription = '';
+  Timer? _transcriptionTimer;
+  
+  // Sentence-by-sentence TTS
+  String _lastSpokenText = '';
+  List<String> _spokenSentences = [];
+  
+  // TTS Queue system
+  List<String> _ttsQueue = [];
+  bool _isSpeaking = false;
 
   @override
   void dispose() {
     _recorder.dispose();
     _player.dispose();
+    _scrollController.dispose();
+    _textController.dispose();
     super.dispose();
+  }
+  
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+  
+  void _addDebugLog(String message) {
+    final timestamp = DateTime.now().toString().substring(11, 19);
+    final logEntry = '[$timestamp] $message';
+    setState(() {
+      _debugLogs.add(logEntry);
+      // Keep only last 50 logs
+      if (_debugLogs.length > 50) {
+        _debugLogs.removeAt(0);
+      }
+    });
+    print('🐛 DEBUG: $logEntry');
+    developer.log(logEntry, name: 'VoiceApp');
+  }
+
+  void _copyLogsToClipboard() {
+    final allLogs = _debugLogs.join('\n');
+    html.window.navigator.clipboard?.writeText(allLogs);
+    _addDebugLog('📋 Logs copied to clipboard!');
+  }
+
+  /// Checks if text contains sentence-ending punctuation
+  bool _hasSentenceEnding(String text) {
+    return text.contains('.') || text.contains('!') || text.contains('?');
+  }
+
+  /// Extracts complete sentences from text
+  List<String> _extractCompleteSentences(String text) {
+    final sentences = <String>[];
+    
+    _addDebugLog('🔍 Extracting sentences from: "${text.substring(0, text.length > 100 ? 100 : text.length)}..."');
+    
+    // Use regex to find all complete sentences with punctuation
+    final sentenceRegex = RegExp(r'[^.!?]*[.!?]+');
+    final matches = sentenceRegex.allMatches(text);
+    
+    _addDebugLog('🎯 Regex found ${matches.length} matches');
+    
+    for (final match in matches) {
+      final sentence = match.group(0)?.trim();
+      if (sentence != null && sentence.isNotEmpty) {
+        sentences.add(sentence);
+        _addDebugLog('✅ Added sentence: "$sentence"');
+      }
+    }
+    
+    _addDebugLog('📋 Final sentences: $sentences');
+    return sentences;
+  }
+
+  /// Processes voice streaming - sends complete sentences automatically
+  void _processVoiceStreaming(String newTranscription) {
+    if (!_isVoiceStreaming) return;
+    
+    _currentTranscription = newTranscription;
+    
+    // Check if we have complete sentences
+    if (_hasSentenceEnding(newTranscription)) {
+      final sentences = _extractCompleteSentences(newTranscription);
+      
+      for (final sentence in sentences) {
+        if (sentence.trim().isNotEmpty) {
+          _addDebugLog('🎤 Auto-sending sentence: "$sentence"');
+          _sendToAI(sentence.trim());
+        }
+      }
+      
+      // Update current transcription to remaining text
+      final lastSentenceEnd = newTranscription.lastIndexOf(RegExp(r'[.!?]')) + 1;
+      if (lastSentenceEnd < newTranscription.length) {
+        _currentTranscription = newTranscription.substring(lastSentenceEnd).trim();
+      } else {
+        _currentTranscription = '';
+      }
+    }
+  }
+
+  /// Processes sentence-by-sentence TTS during streaming
+  void _processSentenceTTS(String fullText) {
+    if (_isMuted) return;
+    
+    _addDebugLog('🔍 Processing TTS for text: "${fullText.length} chars"');
+    
+    // Extract complete sentences from the full text
+    final sentences = _extractCompleteSentences(fullText);
+    _addDebugLog('📝 Found ${sentences.length} sentences: $sentences');
+    
+    // Find new sentences that haven't been spoken yet
+    for (final sentence in sentences) {
+      if (!_spokenSentences.contains(sentence)) {
+        _spokenSentences.add(sentence);
+        _addDebugLog('🔊 Queueing sentence: "$sentence"');
+        
+        // Add to TTS queue instead of speaking immediately
+        _addToTTSQueue(sentence);
+      } else {
+        _addDebugLog('⏭️ Skipping already spoken: "$sentence"');
+      }
+    }
+  }
+
+  /// Adds sentence to TTS queue and starts processing if not already speaking
+  void _addToTTSQueue(String sentence) {
+    _ttsQueue.add(sentence);
+    _addDebugLog('📋 TTS Queue: ${_ttsQueue.length} sentences');
+    
+    // Start processing queue if not already speaking
+    if (!_isSpeaking) {
+      _processTTSQueue();
+    }
+  }
+
+  /// Processes TTS queue sequentially
+  Future<void> _processTTSQueue() async {
+    if (_isSpeaking || _ttsQueue.isEmpty) return;
+    
+    _isSpeaking = true;
+    _addDebugLog('🎤 Starting TTS queue processing');
+    
+    while (_ttsQueue.isNotEmpty) {
+      final sentence = _ttsQueue.removeAt(0);
+      _addDebugLog('🔊 Speaking: "$sentence"');
+      
+      try {
+        // Stop any currently playing audio before starting new sentence
+        if (_isPlaying) {
+          await _player.stop();
+          _isPlaying = false;
+          _addDebugLog('⏹️ Stopped previous audio');
+        }
+        
+        await _synthesizeSpeech(sentence);
+        _addDebugLog('✅ Finished speaking: "$sentence"');
+      } catch (e) {
+        _addDebugLog('❌ TTS Error: $e');
+      }
+      
+      // Small delay between sentences for natural flow
+      await Future.delayed(Duration(milliseconds: 200));
+    }
+    
+    _isSpeaking = false;
+    _addDebugLog('🏁 TTS queue processing completed');
+  }
+
+  /// Clears TTS queue and stops current speech
+  void _clearTTSQueue() {
+    _ttsQueue.clear();
+    _isSpeaking = false;
+    
+    // Stop any currently playing audio
+    if (_isPlaying) {
+      _player.stop();
+      _isPlaying = false;
+      _addDebugLog('⏹️ Stopped audio when clearing queue');
+    }
+    
+    _addDebugLog('🧹 TTS queue cleared');
+  }
+
+  /// Builds conversation context from last 3 interactions (6 messages: 3 user + 3 AI)
+  List<Map<String, String>> _buildConversationContext() {
+    List<Map<String, String>> context = [];
+    
+    // Get last 6 messages (3 interactions)
+    final recentMessages = _messages.length > 6 
+        ? _messages.sublist(_messages.length - 6)
+        : _messages;
+    
+    for (final message in recentMessages) {
+      context.add({
+        'role': message.isUser ? 'user' : 'assistant',
+        'content': message.text,
+        'timestamp': message.timestamp.toIso8601String(),
+      });
+    }
+    
+    return context;
+  }
+
+  /// Loads vector database context for the conversation
+  Future<void> _loadVectorContext(String query) async {
+    try {
+      print('🔍 Loading vector context for query: $query');
+      
+      final response = await http.post(
+        Uri.parse('http://localhost:8080/api/vector/search'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'query': query}),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final vectorResults = data['results'] as List<dynamic>? ?? [];
+        
+        _vectorContext = vectorResults.map((result) => {
+          'content': result['content']?.toString() ?? '',
+          'source': result['source']?.toString() ?? '',
+          'score': result['score']?.toString() ?? '0.0',
+        }).toList();
+        
+        print('📚 Loaded ${_vectorContext.length} vector results');
+      } else {
+        print('⚠️ Vector search failed: ${response.statusCode}');
+        _vectorContext = [];
+      }
+    } catch (e) {
+      print('❌ Vector context error: $e');
+      _vectorContext = [];
+    }
+  }
+
+  /// Gets knowledge base statistics using application services
+  Future<Map<String, dynamic>?> _getKnowledgeStats() async {
+    try {
+      print('📊 Getting knowledge base statistics...');
+      
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/api/chat/knowledge/stats'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('📊 Knowledge stats: ${data['stats']}');
+        return data['stats'];
+      } else {
+        print('⚠️ Knowledge stats failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Knowledge stats error: $e');
+      return null;
+    }
+  }
+
+  /// Gets service capabilities using application services
+  Future<Map<String, dynamic>?> _getServiceCapabilities() async {
+    try {
+      print('🔧 Getting service capabilities...');
+      
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/api/chat/capabilities'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('🔧 Service capabilities: ${data['capabilities']}');
+        return data['capabilities'];
+      } else {
+        print('⚠️ Service capabilities failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Service capabilities error: $e');
+      return null;
+    }
+  }
+  
+  Future<void> _sendTextMessage() async {
+    final text = _textController.text.trim();
+    if (text.isEmpty || _isLoading) return;
+    
+    // Clear text field
+    _textController.clear();
+    
+    // Send to AI
+
+    
+    await _sendToAI(text);
+  }
+  
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+    });
+    
+    if (_isPlaying) {
+      if (_isMuted) {
+        _player.pause();
+      } else {
+        _player.resume();
+      }
+    }
   }
 
   Future<void> _startRecording() async {
@@ -94,16 +481,11 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       setState(() {
         _isRecording = true;
         _mediaRecorder = mediaRecorder;
-        _transcript = '';
-        _aiResponse = '';
       });
       
       developer.log('🎤 Started Web Audio recording', name: 'VoiceApp');
     } catch (e) {
       developer.log('❌ Recording error: $e', name: 'VoiceApp');
-      setState(() {
-        _transcript = 'Error: $e';
-      });
     }
   }
 
@@ -119,9 +501,6 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       }
     } catch (e) {
       developer.log('❌ Error stopping recording: $e', name: 'VoiceApp');
-      setState(() {
-        _transcript = 'Error stopping recording: $e';
-      });
     }
   }
 
@@ -155,23 +534,23 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       
       if (data['status'] == 'ok') {
         developer.log('✅ Transcription successful: ${data['transcript']}', name: 'VoiceApp');
-        setState(() {
-          _transcript = data['transcript'];
-        });
         
         // Send transcript to AI (or fallback if empty)
         final transcript = data['transcript']?.toString().trim();
         if (transcript != null && transcript.isNotEmpty) {
-          await _sendToAI(transcript);
+          if (_isVoiceStreaming) {
+            // Voice streaming mode - process for sentence detection
+            _processVoiceStreaming(transcript);
+          } else {
+            // Normal mode - send entire transcript
+            await _sendToAI(transcript);
+          }
         } else {
           print('⚠️ Empty transcript, sending fallback message');
           await _sendToAI('Test message from Flutter - empty transcript');
         }
       } else {
         developer.log('❌ Transcription failed: ${data['message']}', name: 'VoiceApp');
-        setState(() {
-          _transcript = 'Error: ${data['message']}';
-        });
         
         // Send error message to AI anyway for testing
         await _sendToAI('Test message from Flutter');
@@ -179,9 +558,6 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       
     } catch (e) {
       developer.log('❌ Transcription error: $e', name: 'VoiceApp');
-      setState(() {
-        _transcript = 'Error: $e';
-      });
     } finally {
       setState(() {
         _isLoading = false;
@@ -248,23 +624,23 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       
       if (data['status'] == 'ok') {
         developer.log('✅ Transcription successful: ${data['transcript']}', name: 'VoiceApp');
-        setState(() {
-          _transcript = data['transcript'];
-        });
         
         // Send transcript to AI (or fallback if empty)
         final transcript = data['transcript']?.toString().trim();
         if (transcript != null && transcript.isNotEmpty) {
-          await _sendToAI(transcript);
+          if (_isVoiceStreaming) {
+            // Voice streaming mode - process for sentence detection
+            _processVoiceStreaming(transcript);
+          } else {
+            // Normal mode - send entire transcript
+            await _sendToAI(transcript);
+          }
         } else {
           print('⚠️ Empty transcript, sending fallback message');
           await _sendToAI('Test message from Flutter - empty transcript');
         }
       } else {
         developer.log('❌ Transcription failed: ${data['message']}', name: 'VoiceApp');
-        setState(() {
-          _transcript = 'Error: ${data['message']}';
-        });
         
         // Send error message to AI anyway for testing
         await _sendToAI('Test message from Flutter');
@@ -272,9 +648,6 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       
     } catch (e) {
       developer.log('❌ Transcription error: $e', name: 'VoiceApp');
-      setState(() {
-        _transcript = 'Error: $e';
-      });
     } finally {
       setState(() {
         _isLoading = false;
@@ -283,54 +656,198 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
   }
 
   Future<void> _sendToAI(String text) async {
-    print('💬 Sending text to AI: $text');
-    developer.log('💬 Sending text to AI: $text', name: 'VoiceApp');
+    if (text.isEmpty) return;
+    
+    _addDebugLog('🚀 Starting AI streaming request: "$text"');
+    
+    // Clear spoken sentences and TTS queue for new conversation
+    _spokenSentences.clear();
+    _clearTTSQueue();
+    
+    // Add user message to chat
+    setState(() {
+      _messages.add(ChatMessage(
+        text: text,
+        isUser: true,
+        timestamp: DateTime.now(),
+      ));
+      _isLoading = true;
+    });
+    
+    // Scroll to bottom
+    _scrollToBottom();
+    
+    print('💬 Sending text to AI via SSE: $text');
+    developer.log('💬 Sending text to AI via SSE: $text', name: 'VoiceApp');
+    
     try {
-      final response = await http.post(
-        Uri.parse('http://localhost:8080/api/chat/send'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'message': text}),
-      );
+      _addDebugLog('📤 Starting SSE connection to: http://localhost:8080/api/message/stream');
       
-      print('🤖 Received response from AI: ${response.statusCode}');
-      print('🤖 Response body: ${response.body}');
-      developer.log('🤖 Received response from AI: ${response.statusCode}', name: 'VoiceApp');
-      developer.log('🤖 Response body: ${response.body}', name: 'VoiceApp');
+      // Create AI message placeholder for streaming
+      ChatMessage? aiMessage;
+      String fullResponse = '';
       
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        print('✅ AI response data: $data');
-        developer.log('✅ AI response data: $data', name: 'VoiceApp');
-        setState(() {
-          _aiResponse = data['response'] ?? 'No response';
-        });
-        
-        // Convert AI response to speech
-        await _synthesizeSpeech(data['response'] ?? 'No response');
+      final request = http.Request('POST', Uri.parse('http://localhost:8080/api/message/stream'));
+      request.headers.addAll({
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+      });
+      request.body = json.encode({
+        'message': text,
+      });
+      
+      final streamedResponse = await request.send();
+      _addDebugLog('📥 SSE Response: ${streamedResponse.statusCode}');
+      
+      if (streamedResponse.statusCode == 200) {
+        await for (final chunk in streamedResponse.stream.transform(utf8.decoder)) {
+          final lines = chunk.split('\n');
+          for (final line in lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                final data = json.decode(line.substring(6));
+                _addDebugLog('📨 SSE Data: ${data['type']}');
+                
+                switch (data['type']) {
+                  case 'session':
+                    _addDebugLog('📝 Session ID: ${data['session_id']}');
+                    break;
+                    
+                  case 'status':
+                    _addDebugLog('ℹ️ Status: ${data['message']}');
+                    break;
+                    
+                  case 'chunk':
+                    final content = data['content'] ?? '';
+                    fullResponse += content;
+                    
+                    // Create or update AI message
+                    if (aiMessage == null) {
+                      aiMessage = ChatMessage(
+                        text: content,
+                        isUser: false,
+                        timestamp: DateTime.now(),
+                      );
+                      setState(() {
+                        _messages.add(aiMessage!);
+                      });
+                    } else {
+                      // Replace the last AI message with updated content
+                      setState(() {
+                        _messages.removeLast(); // Remove old message
+                        aiMessage = ChatMessage(
+                          text: fullResponse,
+                          isUser: false,
+                          timestamp: DateTime.now(),
+                        );
+                        _messages.add(aiMessage!);
+                      });
+                    }
+                    
+                    // Check for complete sentences and speak them immediately
+                    _processSentenceTTS(fullResponse);
+                    
+                    _scrollToBottom();
+                    break;
+                    
+                  case 'done':
+                    _addDebugLog('✅ Streaming completed');
+                    // TTS is handled by queue during streaming
+                    break;
+                    
+                  case 'error':
+                    _addDebugLog('❌ SSE Error: ${data['error']}');
+                    setState(() {
+                      _messages.add(ChatMessage(
+                        text: 'Error: ${data['error']}',
+                        isUser: false,
+                        timestamp: DateTime.now(),
+                      ));
+                    });
+                    break;
+                }
+              } catch (e) {
+                _addDebugLog('❌ JSON parse error: $e');
+              }
+            }
+          }
+        }
       } else {
-        print('❌ AI response failed: ${response.statusCode} - ${response.body}');
-        developer.log('❌ AI response failed: ${response.statusCode} - ${response.body}', name: 'VoiceApp');
+        _addDebugLog('❌ SSE Error: ${streamedResponse.statusCode}');
         setState(() {
-          _aiResponse = 'Error: ${response.statusCode} - ${response.body}';
+          _messages.add(ChatMessage(
+            text: 'Error: ${streamedResponse.statusCode}',
+            isUser: false,
+            timestamp: DateTime.now(),
+          ));
         });
       }
     } catch (e) {
-      print('❌ AI communication error: $e');
-      developer.log('❌ AI communication error: $e', name: 'VoiceApp');
-    setState(() {
-        _aiResponse = 'Error: $e';
+      _addDebugLog('❌ SSE Exception: $e');
+      print('❌ AI streaming error: $e');
+      developer.log('❌ AI streaming error: $e', name: 'VoiceApp');
+      setState(() {
+        _messages.add(ChatMessage(
+          text: 'Error: $e',
+          isUser: false,
+          timestamp: DateTime.now(),
+        ));
       });
+    } finally {
+      _addDebugLog('🏁 Streaming completed, setting loading=false');
+      setState(() {
+        _isLoading = false;
+      });
+      _scrollToBottom();
     }
   }
 
+  /// Removes code blocks and inline code from text for TTS
+  String _removeCodeBlocks(String text) {
+    String result = text;
+    
+    // Remove triple backtick code blocks (```...```)
+    result = result.replaceAll(RegExp(r'```[\s\S]*?```'), '');
+    
+    // Remove single backtick inline code (`...`)
+    result = result.replaceAll(RegExp(r'`[^`]+`'), '');
+    
+    return result.trim();
+  }
+
   Future<void> _synthesizeSpeech(String text) async {
-    print('🔊 Synthesizing speech for: $text');
+    // Usuń bloki kodu i tagi formatowania przed TTS
+    final withoutCode = _removeCodeBlocks(text);
+    final cleanText = TextFormatter.stripFormatting(withoutCode);
+    
+    // Jeśli po usunięciu kodu tekst jest pusty, nie mów nic
+    if (cleanText.trim().isEmpty) {
+      _addDebugLog('⏭️ Skipping empty text after removing code');
+      return;
+    }
+    
+    print('🔊 Synthesizing speech for: $cleanText');
+    
+    // Check if muted - if so, skip audio generation
+    if (_isMuted) {
+      print('🔇 Audio muted, skipping speech synthesis');
+      return;
+    }
+    
+    // ALWAYS stop any currently playing audio before starting new
+    if (_isPlaying) {
+      await _player.stop();
+      _isPlaying = false;
+      _addDebugLog('⏹️ Stopped previous audio before new TTS');
+    }
+    
     try {
       // For Flutter Web, use simple POST instead of MultipartRequest
       final response = await http.post(
         Uri.parse('http://localhost:8080/api/voice/speak'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'text=${Uri.encodeComponent(text)}&voice=pl-PL-default',
+        body: 'text=${Uri.encodeComponent(cleanText)}&voice=pl-PL-default',
       );
       
       print('🎧 TTS response: ${response.statusCode} - ${response.body}');
@@ -355,15 +872,19 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       
       await _player.play(UrlSource(url));
       
-      _player.onPlayerComplete.listen((_) {
-        setState(() {
-          _isPlaying = false;
-        });
+      // Wait for audio to complete
+      await _player.onPlayerComplete.first;
+      
+      setState(() {
+        _isPlaying = false;
       });
+      
+      _addDebugLog('🎵 Audio playback completed');
     } catch (e) {
       setState(() {
         _isPlaying = false;
       });
+      _addDebugLog('❌ Audio playback error: $e');
       print('Error playing audio: $e');
     }
   }
@@ -371,177 +892,482 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.appBackground,
       appBar: AppBar(
-        title: const Text('Voice AI Assistant'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('🎤 Eliora - Asystentka AI'),
+        backgroundColor: AppColors.aiAvatarBg,
+        foregroundColor: AppColors.aiMessageText,
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(_showDebugPanel ? Icons.bug_report : Icons.bug_report_outlined),
+            onPressed: () {
+              setState(() {
+                _showDebugPanel = !_showDebugPanel;
+              });
+              _addDebugLog(_showDebugPanel ? '🐛 Debug panel opened' : '🐛 Debug panel closed');
+            },
+            tooltip: _showDebugPanel ? 'Hide Debug Panel' : 'Show Debug Panel',
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Table(
-          children: [
-            // Row 1: Recording Button (centered)
-            TableRow(
-              children: [
-                Container(
-                  height: 100,
-                  child: Center(
-                    child: ElevatedButton(
-                      onPressed: _isRecording ? _stopRecording : _startRecording,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isRecording ? Colors.red : Colors.blue,
-                        foregroundColor: Colors.white,
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(20),
-                        elevation: 8,
+      body: Column(
+        children: [
+          // Chat messages area
+          Expanded(
+            child: Container(
+              color: AppColors.chatBackground,
+              child: _messages.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 80,
+                            color: AppColors.aiMessageTimestamp,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Witaj! 👋\nNaciśnij mikrofon i zacznij rozmowę',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: AppColors.aiMessageText,
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Icon(
-                        _isRecording ? Icons.stop : Icons.mic,
-                        size: 30,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            
-            // Row 2: Status Text
-            TableRow(
-              children: [
-                Container(
-                  height: 60,
-                  padding: const EdgeInsets.all(10),
-                  child: Center(
-                    child: Text(
-                      _isRecording ? '🎤 Nagrywanie... Naciśnij aby zatrzymać' : 
-                      _isLoading ? '⚙️ Przetwarzanie...' :
-                      _isPlaying ? '🔊 Odtwarzanie...' :
-                      '🎤 Naciśnij aby rozpocząć nagrywanie',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: _isRecording ? Colors.red : 
-                               _isLoading ? Colors.orange :
-                               _isPlaying ? Colors.green : Colors.grey[700],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            
-            // Row 2.5: Test Button
-            TableRow(
-              children: [
-                Container(
-                  height: 50,
-                  padding: const EdgeInsets.all(10),
-                  child: Center(
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : () async {
-                        setState(() {
-                          _transcript = 'Test: Witaj! To jest testowy tekst do konwersji na mowę.';
-                        });
-                        await _sendToAI(_transcript);
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _messages.length + (_isLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == _messages.length && _isLoading) {
+                          return _buildLoadingMessage();
+                        }
+                        return _buildMessageBubble(_messages[index]);
                       },
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('🧪 Test STT → AI → TTS'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
+                    ),
+            ),
+          ),
+          
+          // Input area with text field and microphone button
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.inputAreaBackground,
+              border: Border(
+                top: BorderSide(color: AppColors.inputFieldBorder),
+              ),
+            ),
+            child: Column(
+              children: [
+                // Status text
+                if (_isRecording || _isLoading || _isPlaying)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      _isRecording ? '🎤 Nagrywanie...' : 
+                      _isLoading ? '⚙️ Przetwarzanie...' :
+                      _isPlaying ? '🔊 Odtwarzanie...' : '',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: _isRecording ? AppColors.statusRecording : 
+                               _isLoading ? AppColors.statusLoading :
+                               _isPlaying ? AppColors.statusPlaying : AppColors.aiMessageTimestamp,
                       ),
                     ),
                   ),
+                
+                // Input row
+                Row(
+                  children: [
+                    // Text input field
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.inputFieldBg,
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(color: AppColors.inputFieldBorder),
+                        ),
+                        child: TextField(
+                          controller: _textController,
+                          enabled: !_isLoading,
+                          decoration: const InputDecoration(
+                            hintText: 'Napisz wiadomość...',
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                          maxLines: null,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _sendTextMessage(),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 8),
+                    
+                    // Send button
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _sendTextMessage,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.sendButton,
+                          foregroundColor: Colors.white,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(12),
+                          elevation: 0,
+                        ),
+                        child: const Icon(Icons.send, size: 20),
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 8),
+                    
+                    // Microphone button
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : (_isRecording ? _stopRecording : _startRecording),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isRecording ? AppColors.micButtonRecording : AppColors.micButtonActive,
+                          foregroundColor: Colors.white,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(12),
+                          elevation: 0,
+                        ),
+                        child: Icon(
+                          _isRecording ? Icons.stop : Icons.mic,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 8),
+                    
+                    // Mute checkbox
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _isMuted ? AppColors.muteBgInactive : AppColors.muteBgActive,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _isMuted ? AppColors.muteBorderInactive : AppColors.muteBorderActive,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: !_isMuted, // Inverted because we want "unmuted" to be checked
+                            onChanged: _isLoading ? null : (_) => _toggleMute(),
+                            activeColor: AppColors.muteCheckbox,
+                          ),
+                          Text(
+                            _isMuted ? '🔇' : '🔊',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            _isMuted ? 'Wycisz' : 'Dźwięk',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: _isMuted ? AppColors.muteTextInactive : AppColors.muteTextActive,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 8),
+                    
+                    // TTS Queue indicator
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _ttsQueue.isNotEmpty ? AppColors.aiAvatarBg : AppColors.userMessageBg,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _ttsQueue.isNotEmpty ? AppColors.aiMessageText : AppColors.userMessageText,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _isSpeaking ? Icons.volume_up : Icons.queue_music,
+                              color: _ttsQueue.isNotEmpty ? AppColors.aiMessageText : AppColors.userMessageText,
+                              size: 16,
+                            ),
+                            Text(
+                              '${_ttsQueue.length}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: _ttsQueue.isNotEmpty ? AppColors.aiMessageText : AppColors.userMessageText,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 8),
+                    
+                    // Voice Streaming toggle
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _isVoiceStreaming ? AppColors.aiAvatarBg : AppColors.userMessageBg,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _isVoiceStreaming ? AppColors.aiMessageText : AppColors.userMessageText,
+                        ),
+                      ),
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _isVoiceStreaming = !_isVoiceStreaming;
+                            if (!_isVoiceStreaming) {
+                              _currentTranscription = '';
+                              _transcriptionTimer?.cancel();
+                            }
+                          });
+                          _addDebugLog(_isVoiceStreaming ? '🎤 Voice streaming ON' : '🎤 Voice streaming OFF');
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _isVoiceStreaming ? Icons.stream : Icons.mic_none,
+                                color: _isVoiceStreaming ? AppColors.aiMessageText : AppColors.userMessageText,
+                                size: 16,
+                              ),
+                              Text(
+                                _isVoiceStreaming ? 'Stream' : 'Normal',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: _isVoiceStreaming ? AppColors.aiMessageText : AppColors.userMessageText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                  ],
                 ),
               ],
             ),
-            
-            // Row 3: Spacer
-            TableRow(
-              children: [
-                Container(height: 20),
-              ],
-            ),
-            
-            // Row 4: Transcript (if exists)
-            if (_transcript.isNotEmpty)
-              TableRow(
+          ),
+          
+          // Debug Panel
+          if (_showDebugPanel)
+            Container(
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                border: Border(
+                  top: BorderSide(color: Colors.green, width: 2),
+                ),
+              ),
+              child: Column(
                 children: [
                   Container(
-                    height: 120,
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    padding: const EdgeInsets.all(8),
+                    color: Colors.green,
+                    child: Row(
                       children: [
+                        const Icon(Icons.bug_report, color: Colors.white, size: 16),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Debug Logs',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                        const Spacer(),
                         Text(
-                          '📝 Transkrypcja:',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          '${_debugLogs.length} logs',
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
                         ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Text(_transcript),
-                          ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.copy, color: Colors.white, size: 16),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: _copyLogsToClipboard,
+                          tooltip: 'Copy logs',
                         ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            
-            // Row 5: AI Response (if exists)
-            if (_aiResponse.isNotEmpty)
-              TableRow(
-                children: [
-                  Container(
-                    height: 120,
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue[200]!),
-                    ),
-        child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-            Text(
-                          '🤖 Odpowiedź AI:',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Text(_aiResponse),
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.white, size: 16),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            setState(() {
+                              _debugLogs.clear();
+                            });
+                          },
+                          tooltip: 'Clear logs',
                         ),
                       ],
                     ),
                   ),
+                  Expanded(
+                    child: _debugLogs.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No debug logs yet...',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          )
+                        : ListView.builder(
+                            reverse: true,
+                            itemCount: _debugLogs.length,
+                            itemBuilder: (context, index) {
+                              final log = _debugLogs[_debugLogs.length - 1 - index];
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                child: Text(
+                                  log,
+                                  style: const TextStyle(
+                                    color: Colors.greenAccent,
+                                    fontSize: 11,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
                 ],
               ),
-            
-            // Row 6: Loading Indicator (if loading)
-            if (_isLoading)
-              TableRow(
+            ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildMessageBubble(ChatMessage message) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        mainAxisAlignment: message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!message.isUser) ...[
+            CircleAvatar(
+              backgroundColor: AppColors.aiAvatarBg,
+              child: const Icon(Icons.smart_toy, color: AppColors.aiAvatarIcon),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: message.isUser ? AppColors.userMessageBg : AppColors.aiMessageBg,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    height: 60,
-                    child: const Center(
-                      child: CircularProgressIndicator(),
+                  RichText(
+                    text: message.isUser 
+                        ? TextSpan(
+                            text: message.text,
+                            style: TextStyle(
+                              color: AppColors.userMessageText,
+                              fontSize: 16,
+                            ),
+                          )
+                        : TextFormatter.formatText(
+                            message.text,
+                            defaultColor: AppColors.aiMessageText,
+                            fontSize: 16,
+                          ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(
+                      color: message.isUser ? AppColors.userMessageTimestamp : AppColors.aiMessageTimestamp,
+                      fontSize: 12,
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+          if (message.isUser) ...[
+            const SizedBox(width: 8),
+            CircleAvatar(
+              backgroundColor: AppColors.userAvatarBg,
+              child: const Icon(Icons.person, color: AppColors.userAvatarIcon),
             ),
           ],
-        ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildLoadingMessage() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: Colors.blue[100],
+            child: const Icon(Icons.smart_toy, color: Colors.blue),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'AI myśli...',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

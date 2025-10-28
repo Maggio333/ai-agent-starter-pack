@@ -88,9 +88,9 @@ class ChatAgentService:
         return await self.orchestration_service.city_service.compare_cities(city1, city2)
     
     # Knowledge Service Methods
-    async def search_knowledge_base(self, query: str) -> Result[List[Dict[str, Any]], str]:
+    async def search_knowledge_base(self, query: str, limit: int = 5) -> Result[List[Dict[str, Any]], str]:
         """Search knowledge base using Knowledge Service"""
-        return await self.orchestration_service.process_knowledge_request(query, "search")
+        return await self.orchestration_service.process_knowledge_request(query, "search", limit=limit)
     
     async def add_knowledge(self, content: str, metadata: Optional[Dict[str, Any]] = None) -> Result[None, str]:
         """Add new knowledge to the knowledge base"""

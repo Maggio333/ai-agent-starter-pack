@@ -19,6 +19,11 @@ from application.services.knowledge_service import KnowledgeService
 from application.services.conversation_service import ConversationService
 from application.services.orchestration_service import OrchestrationService
 from application.services.chat_agent_service import ChatAgentService
+from application.services.user_session_service import UserSessionService
+from application.services.conversation_analysis_agent import ConversationAnalysisAgent
+from application.services.prompt_service import PromptService
+from application.services.dynamic_rag_service import DynamicRAGService
+from application.services.json_embedding_service import JSONEmbeddingService
 from infrastructure.services.text_cleaner_service import TextCleanerService
 from infrastructure.services.email_service import EmailService
 from infrastructure.services.voice_service import VoiceService
@@ -224,7 +229,7 @@ class Container(containers.DeclarativeContainer):
     time_service = providers.Singleton(TimeService)
     knowledge_service = providers.Singleton(KnowledgeService, vector_db_service, text_cleaner_service)
     conversation_service = providers.Singleton(ConversationService, chat_repository)
-    orchestration_service = providers.Singleton(OrchestrationService, conversation_service, vector_db_service)
+    orchestration_service = providers.Singleton(OrchestrationService, conversation_service, vector_db_service, text_cleaner_service)
     
     # Email Service - TYLKO JEDNA LINIA!
     email_service = providers.Singleton(EmailService)
@@ -244,4 +249,31 @@ class Container(containers.DeclarativeContainer):
         vector_db_service=vector_db_service,
         orchestration_service=orchestration_service,
         conversation_service=conversation_service
+    )
+    
+    # Conversation Analysis Agent
+    conversation_analysis_agent = providers.Singleton(
+        ConversationAnalysisAgent,
+        chat_agent_service=chat_agent_service
+    )
+    
+    # Prompt Service - nowy serwis do budowania promptów
+    prompt_service = providers.Singleton(
+        PromptService,
+        knowledge_service=knowledge_service
+    )
+    
+    # JSON Embedding Service - obsługa JSON z modelu i embeddingów
+    json_embedding_service = providers.Singleton(
+        JSONEmbeddingService,
+        embedding_service=embedding_service
+    )
+    
+    # Dynamic RAG Service - nowy serwis do dynamicznego RAG
+    dynamic_rag_service = providers.Singleton(
+        DynamicRAGService,
+        llm_service=llm_service,
+        knowledge_service=knowledge_service,
+        conversation_service=conversation_service,
+        embedding_service=embedding_service  # Dodane żeby JSONEmbeddingService mógł tworzyć embeddingi
     )
