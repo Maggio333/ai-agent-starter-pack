@@ -572,9 +572,14 @@ async def send_simple_message(
                     idioms_strings.append(str(chunk) if chunk else "")
         
         # KROK 4: Pobieranie historii rozmowy
+        logger.info(f"💬 KROK 4: Pobieranie historii dla session_id: {session_id}")
         history_result = await conversation_service.get_conversation_history(session_id, limit=6)
         conversation_history = history_result.value if history_result.is_success else []
+        if history_result.is_error:
+            logger.error(f"❌ Błąd pobierania historii: {history_result.error}")
         logger.info(f"💬 KROK 4: Pobrano {len(conversation_history)} wiadomości rozmowy")
+        for i, msg in enumerate(conversation_history, 1):
+            logger.info(f"💬   Wiadomość {i}: {msg.role.value} - thread_id: {msg.thread_id} - {msg.content[:50]}...")
         
         # KROK 5: Użycie Dynamic RAG Service do decyzji o zapytaniu wektorowym (w stylu ChatElioraReflect)
         logger.info(f"🤖 KROK 5: Używanie Dynamic RAG Service do decyzji o zapytaniu wektorowym...")
@@ -625,28 +630,25 @@ async def send_simple_message(
                 system_query=dynamic_query_result.value if dynamic_query_result.is_success else "",
                 user_context=user_context
             )
+
+            logger.info(f"Dynamic RAG: {rag_context}")
             
             # Dodaje jako wiadomość systemową
             complete_messages.insert(-1, ChatMessage(
                 role=MessageRole.SYSTEM,
                 content=rag_context,
                 timestamp=datetime.now()
-            ))
+            ))        
         
-        # KROK 7: Przetwarzanie przez LLM z streamingiem (w stylu ChatElioraReflect)
-        logger.info(f"🎭 KROK 7: Przetwarzanie przez LLM z streamingiem")
-        
-        # Używa LLM Service z ChatAgentService (z Container)
+        # KROK 7: Przetwarzanie przez LLM
         llm_service = chat_agent_service.llm_service
-        
-        # Generuje odpowiedź używając LLM z streamingiem
         response_parts = []
         async for chunk in prompt_service.send_to_llm_streaming(complete_messages, llm_service):
             response_parts.append(chunk)
         
         response = "".join(response_parts)
         
-        # KROK 8: Zapisywanie rozmowy do sesji
+        # KROK 8: Zapisywanie rozmowy
         user_message = ChatMessage(
             role=MessageRole.USER,
             content=message,
@@ -660,9 +662,7 @@ async def send_simple_message(
         
         save_result = await conversation_service.save_conversation([user_message, ai_message], session_id)
         if save_result.is_error:
-            logger.warning(f"Zapisywanie rozmowy nie powiodło się: {save_result.error}")
-        
-        logger.info(f"✅ KROK 8: Odpowiedź wygenerowana i zapisana")
+            logger.error(f"Błąd zapisywania rozmowy: {save_result.error}")
         
         # Pobiera liczbę wyników wektorowych bezpiecznie
         dynamic_vector_count = len(dynamic_vector_results) if dynamic_vector_results else 0
@@ -681,7 +681,7 @@ async def send_simple_message(
         }
             
     except Exception as e:
-        logger.error(f"❌ Błąd przetwarzania prostej wiadomości: {e}")
+        logger.error(f"Błąd przetwarzania wiadomości: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -703,18 +703,14 @@ async def send_message_streaming(
             if not message:
                 yield f"data: {json.dumps({'error': 'Message is required'})}\n\n"
                 return
-            
-            logger.info(f"🔄 Processing streaming message: {message}")
-            
-            # KROK 1: Tworzenie sesji jeśli nie podano
+           
             if not session_id:
                 session_result = await conversation_service.start_conversation()
                 if session_result.is_error:
                     yield f"data: {json.dumps({'error': session_result.error})}\n\n"
                     return
-                session_id = session_result.value
-                logger.info(f"📝 Created new session: {session_id}")
-            
+                session_id = session_result.value     
+
             # Wyślij informację o sesji
             yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
             
@@ -742,9 +738,11 @@ async def send_message_streaming(
             # KROK 4: Historia rozmowy
             history_result = await conversation_service.get_conversation_history(session_id, limit=6)
             conversation_history = history_result.value if history_result.is_success else []
+            if history_result.is_error:
+                logger.error(f"Błąd pobierania historii: {history_result.error}")
             
-            # KROK 5: Dynamic RAG
-            yield f"data: {json.dumps({'type': 'status', 'message': 'Analizowanie kontekstu...'})}\n\n"
+            # # KROK 5: Dynamic RAG
+            # yield f"data: {json.dumps({'type': 'status', 'message': 'Analizowanie kontekstu...'})}\n\n"
             
             dynamic_query_result = await dynamic_rag_service.decide_vector_query(
                 conversation_context=conversation_history,
@@ -756,30 +754,17 @@ async def send_message_streaming(
             if dynamic_query_result.is_success:
                 dynamic_query = dynamic_query_result.value
                 yield f"data: {json.dumps({'type': 'status', 'message': f'Dynamic RAG: {dynamic_query[:50]}...'})}\n\n"
-                
                 dynamic_search_result = await dynamic_rag_service.search_with_filtering(
                     query=dynamic_query,
                     score_threshold=0.75,  # Zmniejszone z 0.85 dla lepszej ilości wyników
                     limit=5,
                     user_context=user_context
                 )
-                
                 if dynamic_search_result.is_success:
                     dynamic_vector_results = dynamic_search_result.value
-                    logger.info(f"🔍 Dynamic RAG Results: {len(dynamic_vector_results)} chunks")
-                    for i, result in enumerate(dynamic_vector_results, 1):
-                        logger.info(f"  Result {i}:")
-                        if isinstance(result, dict):
-                            logger.info(f"    Score: {result.get('score', 'N/A')}")
-                            logger.info(f"    Topic: {result.get('topic', 'N/A')}")
-                            facts = result.get('facts', [])
-                            if facts and len(facts) > 0:
-                                logger.info(f"    Content: {facts[0][:200]}...")
-                            logger.info(f"    Metadata: {result.get('metadata', {})}")
-                        else:
-                            logger.info(f"    Raw: {str(result)[:200]}...")
                     yield f"data: {json.dumps({'type': 'status', 'message': f'Znaleziono {len(dynamic_vector_results)} wyników RAG'})}\n\n"
-            
+                
+
             # KROK 6: Budowanie wiadomości
             complete_messages = prompt_service.build_complete_message_list(
                 user_message=message,
@@ -789,46 +774,37 @@ async def send_message_streaming(
             )
             
             if dynamic_vector_results:
-                from domain.models.rag_result import RAGResult, RAGContextFormatter
-                rag_results = [RAGResult.from_vector_result(result) for result in dynamic_vector_results]
-                rag_context = RAGContextFormatter.format_as_system_message(
-                    rag_results=rag_results,
-                    system_query=dynamic_query_result.value if dynamic_query_result.is_success else "",
-                    user_context=user_context
-                )
+                 from domain.models.rag_result import RAGResult, RAGContextFormatter
+                 rag_results = [RAGResult.from_vector_result(result) for result in dynamic_vector_results]
+                 rag_context = RAGContextFormatter.format_as_system_message(
+                     rag_results=rag_results,
+                     system_query=dynamic_query_result.value if dynamic_query_result.is_success else "",
+                     user_context=user_context
+                 )
                 
-                # Logowanie treści RAG dodawanej do kontekstu
-                logger.info(f"🎯 RAG Context dodany do LLM:")
-                logger.info(f"   Długość: {len(rag_context)} znaków")
-                logger.info(f"   Liczba chunków: {len(rag_results)}")
-                logger.info(f"   Preview: {rag_context[:300]}...")
-                logger.info(f"")
-                logger.info(f"   📋 PEŁNY KONTEKST RAG DOKLEJONY DO LLM:")
-                logger.info(f"   {'='*70}")
-                for line in rag_context.split('\n'):
-                    logger.info(f"   {line}")
-                logger.info(f"   {'='*70}")
-                
-                complete_messages.insert(-1, ChatMessage(
-                    role=MessageRole.SYSTEM,
-                    content=rag_context,
-                    timestamp=datetime.now()
-                ))
+                 complete_messages.insert(-1, ChatMessage(
+                     role=MessageRole.SYSTEM,
+                     content=rag_context,
+                     timestamp=datetime.now()
+                 ))
             
             # KROK 7: Streaming LLM
             yield f"data: {json.dumps({'type': 'status', 'message': 'Generowanie odpowiedzi...'})}\n\n"
             
             # 🎯 LOGOWANIE KOŃCOWEJ STRUKTURY KONTEKSTU
-            logger.info(f"🎯 KOŃCOWA STRUKTURA KONTEKSTU ({len(complete_messages)} wiadomości):")
-            for i, msg in enumerate(complete_messages, 1):
-                logger.info(f"   {i}. {msg.role.value.upper()}: {len(msg.content)} znaków")
-                if msg.role == MessageRole.SYSTEM and "KONTEKST Z PAMIĘCI" in msg.content:
-                    logger.info(f"      ⭐ TO JEST RAG CONTEXT!")
+            #logger.info(f"🎯 KOŃCOWA STRUKTURA KONTEKSTU ({len(complete_messages)} wiadomości):")
+            #for i, msg in enumerate(complete_messages, 1):
+            #    logger.info(f"   {i}. {msg.role.value.upper()}: {len(msg.content)} znaków")
+            #    if msg.role == MessageRole.SYSTEM and "KONTEKST Z PAMIĘCI" in msg.content:
+            #        logger.info(f"      ⭐ TO JEST RAG CONTEXT!")
             
             llm_service = chat_agent_service.llm_service
             response_parts = []
+            chunk_count = 0
             
+            logger.info(f"🔄 Rozpoczynam streaming z LLM...") 
             async for chunk in prompt_service.send_to_llm_streaming(complete_messages, llm_service):
+                chunk_count += 1
                 if chunk:
                     response_parts.append(chunk)
                     # Wyślij chunk do klienta
@@ -836,6 +812,10 @@ async def send_message_streaming(
                     await asyncio.sleep(0.01)  # Małe opóźnienie dla płynności
             
             response = "".join(response_parts)
+            #logger.info(f"✅ Streaming zakończony: {chunk_count} chunków, {response.count} znaków odpowiedzi")
+            
+            #if not response or not response.strip():
+            #    logger.error(f"❌ CRITICAL: LLM zwróciło pustą odpowiedź! chunk_count={chunk_count}, response_parts={len(response_parts)}")
             
             # KROK 8: Zapisywanie
             user_message = ChatMessage(
@@ -843,21 +823,23 @@ async def send_message_streaming(
                 content=message,
                 timestamp=datetime.now()
             )
-            ai_message = ChatMessage(
-                role=MessageRole.ASSISTANT,
-                content=response,
-                timestamp=datetime.now()
-            )
             
-            save_result = await conversation_service.save_conversation([user_message, ai_message], session_id)
-            if save_result.is_error:
-                logger.warning(f"Zapisywanie rozmowy nie powiodło się: {save_result.error}")
+            if response and response.strip():
+                ai_message = ChatMessage(
+                    role=MessageRole.ASSISTANT,
+                    content=response,
+                    timestamp=datetime.now()
+                )
+                
+                save_result = await conversation_service.save_conversation([user_message, ai_message], session_id)
+                if save_result.is_error:
+                    logger.error(f"Błąd zapisywania rozmowy: {save_result.error}")
             
             # Koniec streamingu
             yield f"data: {json.dumps({'type': 'done', 'session_id': session_id})}\n\n"
             
         except Exception as e:
-            logger.error(f"❌ Błąd streamingu: {e}")
+            logger.error(f"Błąd streamingu: {e}")
             yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
     
     return StreamingResponse(

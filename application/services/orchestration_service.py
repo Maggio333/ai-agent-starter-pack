@@ -15,15 +15,22 @@ from .conversation_service import ConversationService
 class OrchestrationService(IOrchestrationService):
     """Microservice orchestrator that coordinates all other services"""
     
-    def __init__(self, conversation_service: ConversationService, vector_db_service = None, text_cleaner_service = None):
-        self.rop_service = ROPService()
+    def __init__(
+        self,
+        conversation_service: ConversationService,
+        weather_service: WeatherService,
+        time_service: TimeService,
+        city_service: CityService,
+        knowledge_service: KnowledgeService,
+        rop_service: Optional[ROPService] = None
+    ):
+        """Initialize OrchestrationService with injected dependencies"""
+        self.rop_service = rop_service if rop_service is not None else ROPService()
         self.conversation_service = conversation_service
-        
-        
-        self.weather_service = WeatherService()
-        self.time_service = TimeService()
-        self.city_service = CityService()
-        self.knowledge_service = KnowledgeService(vector_db_service, text_cleaner_service)
+        self.weather_service = weather_service
+        self.time_service = time_service
+        self.city_service = city_service
+        self.knowledge_service = knowledge_service
         
         # Service registry for easy access
         self._services = {

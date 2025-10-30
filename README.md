@@ -7,7 +7,10 @@ Zaawansowany system chatbot z architekturą Clean Architecture, integrujący Flu
 ### 1. Backend (FastAPI)
 ```bash
 cd python_agent
-python main_fastapi.py
+# try dev autoreload (zalecane):
+uvicorn main_fastapi:app --reload --host 0.0.0.0 --port 8080
+# lub:
+$env:RELOAD='true'; python main_fastapi.py
 ```
 **Server**: http://localhost:8080
 
@@ -67,6 +70,15 @@ docker run -p 6333:6333 qdrant/qdrant
 ```
 
 ## 🧠 Key Features
+
+### ✅ Ostatnie zmiany (dev)
+- Sklejanie wszystkich system promptów w JEDEN `SYSTEM` (sekcje: PERSONA, FORMAT, ROLE, opcjonalnie USER PROFILE, IDIOMS)
+- Poprawiona alternacja ról dla LM Studio (po SYSTEM zawsze USER; historia trimowana do par USER→ASSISTANT)
+- Stabilizacja streamingu (fix: `NoneType has no len`, bez podwójnych zapisów)
+- Auto-reload w dev: `uvicorn main_fastapi:app --reload` lub `$env:RELOAD='true'; python main_fastapi.py`
+- Globalny `conftest.py`: automatyczny PYTHONPATH i fallback dla async testów
+- Nowe testy `test_prompt_service.py` (system prompt combine + alternacja)
+
 
 ### 🤖 Conversation Analysis Agent
 - **Inteligentna analiza kontekstu** rozmowy
@@ -391,6 +403,6 @@ For support and questions:
 
 ---
 
-**Last Updated**: 2024-01-01  
-**Version**: 1.0.0  
+**Last Updated**: 2025-10-30  
+**Version**: 1.1.0  
 **Status**: Production Ready

@@ -1,3 +1,18 @@
+## Dev startup (autoreload)
+
+```bash
+cd python_agent
+uvicorn main_fastapi:app --reload --host 0.0.0.0 --port 8080
+# lub
+$env:RELOAD='true'; python main_fastapi.py
+```
+
+## App creation
+- Aplikacja jest budowana przez `create_app()` i eksportowana jako `app` w `main_fastapi.py`.
+- Dzięki temu `uvicorn main_fastapi:app --reload` działa poprawnie.
+
+Last Updated: 2025-10-30  
+Version: 1.1.0
 # 🚀 Przepływ Clean FastAPI - Jak to lata po plikach
 
 ## 📁 **1. Uruchomienie (`main_fastapi.py`)**

@@ -74,21 +74,18 @@ class ConversationService(IConversationService):
             if validation_result.is_error:
                 return validation_result
             
-            # Save messages using ROP pipeline
-            def save_message(msg: ChatMessage) -> Result[None, str]:
+            # Save messages sequentially using ROP style (async with error handling)
+            async def save_message(msg: ChatMessage) -> Result[None, str]:
                 # Set session_id if provided
                 if session_id:
                     msg.thread_id = session_id
-                return self.chat_repository.save_message(msg)
+                return await self.chat_repository.save_message(msg)
             
-            # Use ROP to save all messages
-            pipeline = self.rop_service.pipeline(
-                *[lambda msgs, i=i: save_message(msgs[i]) for i in range(len(messages))]
-            )
-            
-            save_result = pipeline(messages)
-            if save_result.is_error:
-                return save_result
+            # Save each message sequentially, stopping on first error (Railway pattern)
+            for message in messages:
+                save_result = await save_message(message)
+                if save_result.is_error:
+                    return save_result
             
             # Update session data if session_id provided
             if session_id and session_id in self._active_sessions:

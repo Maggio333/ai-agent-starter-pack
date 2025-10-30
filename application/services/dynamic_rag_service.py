@@ -11,11 +11,12 @@ from application.services.json_embedding_service import JSONEmbeddingService
 class DynamicRAGService:
     """Serwis do dynamicznych zapytań RAG decydowanych przez LLM (inspirowany ChatElioraReflect)"""
     
-    def __init__(self, llm_service=None, knowledge_service=None, conversation_service=None, embedding_service=None):
+    def __init__(self, llm_service=None, knowledge_service=None, conversation_service=None, json_embedding_service=None):
+        """Initialize DynamicRAGService with injected dependencies"""
         self.llm_service = llm_service
         self.knowledge_service = knowledge_service
         self.conversation_service = conversation_service
-        self.json_embedding_service = JSONEmbeddingService(embedding_service=embedding_service)
+        self.json_embedding_service = json_embedding_service
         self.logger = logging.getLogger(__name__)
     
     async def decide_vector_query(

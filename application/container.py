@@ -229,7 +229,15 @@ class Container(containers.DeclarativeContainer):
     time_service = providers.Singleton(TimeService)
     knowledge_service = providers.Singleton(KnowledgeService, vector_db_service, text_cleaner_service)
     conversation_service = providers.Singleton(ConversationService, chat_repository)
-    orchestration_service = providers.Singleton(OrchestrationService, conversation_service, vector_db_service, text_cleaner_service)
+    orchestration_service = providers.Singleton(
+        OrchestrationService,
+        conversation_service=conversation_service,
+        weather_service=weather_service,
+        time_service=time_service,
+        city_service=city_service,
+        knowledge_service=knowledge_service,
+        rop_service=rop_service
+    )
     
     # Email Service - TYLKO JEDNA LINIA!
     email_service = providers.Singleton(EmailService)
@@ -275,5 +283,5 @@ class Container(containers.DeclarativeContainer):
         llm_service=llm_service,
         knowledge_service=knowledge_service,
         conversation_service=conversation_service,
-        embedding_service=embedding_service  # Dodane żeby JSONEmbeddingService mógł tworzyć embeddingi
+        json_embedding_service=json_embedding_service  # Inject JSONEmbeddingService instead of creating it
     )

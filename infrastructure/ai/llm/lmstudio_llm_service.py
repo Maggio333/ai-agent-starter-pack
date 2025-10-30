@@ -71,9 +71,31 @@ class LMStudioLLMService(BaseLLMService):
                 "model": self.model_name,
                 "messages": lm_messages,
                 "temperature": 0.7,
-                "max_tokens": 2048,
+                "max_tokens": 12000,
                 "stream": True
             }
+
+
+                    # AREK TESTY: Sprawdź czy content nie jest obcięty w żadnej wiadomości
+            #self.logger.info("=" * 80)
+            #self.logger.info("AREK TESTY: SPRAWDZENIE CONTENT W WSZYSTKICH WIADOMOŚCIACH PRZED ZWRÓCENIEM")
+            #self.logger.info("=" * 80)
+            #for i, msg in enumerate(lm_messages, 1):
+                #self.logger.info(f"\nWIADOMOŚĆ #{i} W LISTACH:")
+                #self.logger.info(f"  ROLE: {msg.role.value}")
+                #self.logger.info(f"  CONTENT DŁUGOŚĆ: {len(msg.content)} znaków")
+                #self.logger.info(f"  CONTENT (PEŁNY - linia po linii):")
+                #for line_num, line in enumerate(msg.content.split('\n'), 1):
+                #    self.logger.info(f"    [{line_num:03d}] {line}")
+            #self.logger.info("=" * 80)
+            #self.logger.info(f"\nWIADOMOŚĆ #{i} W LISTACH:")
+            #self.logger.info(f"  ROLE: {msg.role.value}")
+            #self.logger.info(f"  CONTENT DŁUGOŚĆ: {len(msg.content)} znaków")
+            #self.logger.info(f"  CONTENT (PEŁNY - linia po linii):")
+            #for line_num, line in enumerate(msg.content.split('\n'), 1):
+            #    self.logger.info(f"    [{line_num:03d}] {line}")
+        #self.logger.info("=" * 80)
+        
             
             async with httpx.AsyncClient(timeout=60.0) as client:
                 async with client.stream("POST", self.chat_endpoint, json=payload) as response:
@@ -305,14 +327,24 @@ class LMStudioLLMService(BaseLLMService):
         lm_messages = []
         
         for msg in messages:
-            role_mapping = {
-                MessageRole.USER: "user",
-                MessageRole.ASSISTANT: "assistant", 
-                MessageRole.SYSTEM: "system",
-                MessageRole.TOOL: "tool"
-            }
+            # role_mapping = {
+            #     MessageRole.USER: "user",
+            #     MessageRole.ASSISTANT: "assistant", 
+            #     MessageRole.SYSTEM: "system",
+            #     MessageRole.TOOL: "tool"
+            # }
+
+            if(msg.role == MessageRole.SYSTEM):
+                lm_role = "system"
             
-            lm_role = role_mapping.get(msg.role, "user")
+            if(msg.role == MessageRole.USER):
+                lm_role = "user"
+            
+            if(msg.role == MessageRole.ASSISTANT):
+                lm_role = "assistant"
+
+            if(msg.role == MessageRole.TOOL):
+                lm_role = "tool"
             
             lm_messages.append({
                 "role": lm_role,

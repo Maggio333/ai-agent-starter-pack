@@ -4,20 +4,30 @@ Voice AI Assistant Backend using pure FastAPI
 """
 import logging
 import os
+import sys
 import uvicorn
 from typing import Optional
+from fastapi import FastAPI
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging to both console and file
+log_file = "fastapi.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file, encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 # Import Container bezpośrednio - bez DIService
 from application.container import Container
 
-def main():
-    """Main application entry point - Clean FastAPI version"""
+def create_app() -> FastAPI:
+    """Create FastAPI application - funkcja potrzebna dla reload"""
     try:
-        logger.info("🚀 Starting Voice AI Assistant with Clean FastAPI...")
+        logger.info("🚀 Creating Voice AI Assistant app with Clean FastAPI...")
         
         # Get Container
         container = Container()
@@ -44,14 +54,32 @@ def main():
         server_info = web_server_manager.get_server_info()
         logger.info(f"📊 Server info: {server_info}")
         
-        # Start server
-        logger.info("🌐 Starting Clean FastAPI web server on http://0.0.0.0:8080")
-        logger.info("✨ Clean startup - no Google ADK warnings!")
-        uvicorn.run(app, host="0.0.0.0", port=8080)
-        
+        return app
     except Exception as e:
-        logger.error(f"❌ Failed to start Clean FastAPI application: {e}")
+        logger.error(f"Pure FastAPI app initialization failed: {e}")
         raise
+
+# Utwórz app na poziomie modułu - wymagane dla reload=True w uvicorn
+app = create_app()
+
+def main():
+    """Main application entry point - Clean FastAPI version"""
+    logger.info("🌐 Starting Clean FastAPI web server on http://0.0.0.0:8080")
+    logger.info("✨ Clean startup - no Google ADK warnings!")
+    
+    # Sprawdź czy reload jest włączony
+    reload_enabled = os.environ.get("RELOAD", "false").lower() == "true" or "--reload" in sys.argv
+    
+    if reload_enabled:
+        logger.info("🔄 Auto-reload ENABLED - zmiany będą wykrywane automatycznie!")
+        logger.info("📝 Monitorowane pliki: *.py w całym projekcie")
+        # Używamy string modułu dla reload - to jest KLUCZOWE!
+        uvicorn.run("main_fastapi:app", host="0.0.0.0", port=8080, reload=True, reload_includes=["*.py"])
+    else:
+        logger.info("💡 Dla auto-reload uruchom:")
+        logger.info("   PowerShell: $env:RELOAD='true'; python main_fastapi.py")
+        logger.info("   LUB bezpośrednio: uvicorn main_fastapi:app --reload --host 0.0.0.0 --port 8080")
+        uvicorn.run(app, host="0.0.0.0", port=8080, reload=False)
 
 if __name__ == "__main__":
     main()

@@ -1,3 +1,28 @@
+## Update 2025-10-30
+
+- Single SYSTEM prompt composed of sections: PERSONA, FORMAT, ROLE, optional USER PROFILE, and IDIOMS
+- Conversation history filtered to ensure role alternation for LM Studio (…SYSTEM → USER → ASSISTANT…); trim trailing USER and drop leading ASSISTANT
+- `create_app()` pattern with `uvicorn main_fastapi:app --reload` for dev autoreload
+- Tests: global `conftest.py` (PYTHONPATH + async fallback), new `tests/test_prompt_service.py`
+
+Diagram (high-level):
+
+```
+Presentation (Flutter, FastAPI Endpoints)
+  └─ Chat/SSE → PromptService
+Application
+  ├─ PromptService (combine SYSTEM, filter history)
+  ├─ DynamicRAGService (decide/search)
+  ├─ ConversationService (sessions/history)
+  └─ OrchestrationService
+Infrastructure
+  ├─ LMStudioLLMService (stream)
+  ├─ Qdrant (Search/Embeddings)
+  └─ SQLite ChatRepository (CRUD/Threads)
+```
+
+Last Updated: 2025-10-30  
+Version: 1.1.0
 # 🏗️ Architecture - Architektura Systemu
 
 ## 📋 Przegląd

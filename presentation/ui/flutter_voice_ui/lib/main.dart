@@ -113,6 +113,9 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
   // Chat messages list
   List<ChatMessage> _messages = [];
   
+  // Current session ID for conversation continuity
+  String? _currentSessionId;
+  
   // Vector database context for current conversation
   List<Map<String, String>> _vectorContext = [];
   
@@ -693,9 +696,19 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
         'Accept': 'text/event-stream',
         'Cache-Control': 'no-cache',
       });
-      request.body = json.encode({
+      final requestBody = <String, dynamic>{
         'message': text,
-      });
+      };
+      
+      // Add session_id if we have one (for conversation continuity)
+      if (_currentSessionId != null) {
+        requestBody['session_id'] = _currentSessionId;
+        _addDebugLog('📤 Sending with session_id: $_currentSessionId');
+      } else {
+        _addDebugLog('📤 Sending without session_id (will create new session)');
+      }
+      
+      request.body = json.encode(requestBody);
       
       final streamedResponse = await request.send();
       _addDebugLog('📥 SSE Response: ${streamedResponse.statusCode}');
@@ -711,7 +724,8 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
                 
                 switch (data['type']) {
                   case 'session':
-                    _addDebugLog('📝 Session ID: ${data['session_id']}');
+                    _currentSessionId = data['session_id'];
+                    _addDebugLog('📝 Session ID saved: $_currentSessionId');
                     break;
                     
                   case 'status':

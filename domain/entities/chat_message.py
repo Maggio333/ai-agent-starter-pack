@@ -30,8 +30,8 @@ class ChatMessage:
             self.message_id = f"{self.timestamp.timestamp()}_{self.role.value}"
         
         # Validation
-        if not self.content or not self.content.strip():
-            raise ValueError("Content cannot be empty")
+        # if not self.content or not self.content.strip():
+        #     raise ValueError("Content cannot be empty")
         
         if len(self.content) > 50000:  # 50KB limit
             raise ValueError("Content too long (max 50KB)")

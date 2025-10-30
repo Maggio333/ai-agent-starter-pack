@@ -1,3 +1,20 @@
+## New helpers (2025-10-30)
+
+- `check_syntax.py` – szybkie sprawdzenie składni wszystkich plików Pythona:
+  ```bash
+  cd python_agent
+  python check_syntax.py
+  ```
+
+- Globalny `tests/conftest.py` –
+  - dodaje PYTHONPATH (projekt root) dla testów
+  - zapewnia fallback do uruchamiania `async def` testów bez dodatkowych pluginów
+
+## Notes
+- Przy LM Studio logi mogą wymagać pełnych treści promptu; ograniczyliśmy nadmiar, ale w razie potrzeby włącz sekcje w PromptService.
+
+Last Updated: 2025-10-30  
+Version: 1.1.0
 # 🔧 Debug Tools - Narzędzia Debugowania
 
 ## 📋 Przegląd

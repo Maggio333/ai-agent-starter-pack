@@ -1,3 +1,17 @@
+## Key Endpoints (update 2025-10-30)
+
+- `POST /api/message` – przetwarzanie wiadomości (idiomy, historia, RAG, LLM, zapis)
+- `POST /api/message/stream` – SSE streaming odpowiedzi
+- `POST /api/vector/search` – wyszukiwanie w bazie wektorowej
+- `GET /api/knowledge/stats` – statystyki wiedzy
+- `POST /api/sessions` / `GET /api/sessions/{id}` / `GET /api/sessions/{id}/history` – zarządzanie sesjami
+
+Uwagi:
+- SYSTEM prompt wysyłany do LLM jest pojedynczy i zawiera sekcje PERSONA/FORMAT/ROLE/USER PROFILE/IDIOMS.
+- Historia rozmowy jest filtrowana do par USER→ASSISTANT, aby zachować alternację ról dla LM Studio.
+
+Last Updated: 2025-10-30  
+Version: 1.1.0
 # 🌐 API Endpoints - Dokumentacja API
 
 ## 📋 Przegląd

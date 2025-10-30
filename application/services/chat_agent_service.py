@@ -143,5 +143,4 @@ class ChatAgentService:
         """Save conversation to repository using Conversation Service"""
         return await self.conversation_service.save_conversation(messages, session_id)
 
-# Create agent instance
-chat_agent_instance = ChatAgentService()
+# Note: ChatAgentService should be created via DI Container, not as global instance
