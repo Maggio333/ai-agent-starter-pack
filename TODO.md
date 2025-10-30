@@ -32,6 +32,9 @@ Date: 2025-10-30
 - [ ] pytest-asyncio (asyncio_mode=auto) instead of manual fallback
 - [ ] Make pre-commit with check_syntax + basic lint
 - [ ] Short operational handbook (LM Studio profiles, SSE tips)
+- [ ] Split `presentation/api/chat_endpoints.py` into modular routers:
+      sessions.py, messages.py, streaming.py, vector.py, knowledge.py, health.py
+      + shared deps.py and utils/sse.py (cancellation)
 
 ## ML / Fine-tuning (Roadmap)
 - [ ] Collect high-quality chat transcripts for SFT
