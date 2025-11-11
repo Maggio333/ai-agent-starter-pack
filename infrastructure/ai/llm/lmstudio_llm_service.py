@@ -97,7 +97,7 @@ class LMStudioLLMService(BaseLLMService):
         #self.logger.info("=" * 80)
         
             
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minut dla długich odpowiedzi
                 async with client.stream("POST", self.chat_endpoint, json=payload) as response:
                     response.raise_for_status()
                     
@@ -177,7 +177,7 @@ class LMStudioLLMService(BaseLLMService):
                 "stream": True
             }
             
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minut dla długich odpowiedzi
                 async with client.stream("POST", self.chat_endpoint, json=payload) as response:
                     response.raise_for_status()
                     

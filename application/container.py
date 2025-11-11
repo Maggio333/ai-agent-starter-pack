@@ -208,10 +208,12 @@ class Container(containers.DeclarativeContainer):
     llm_service = providers.Singleton(_create_llm_service)
     
     # Vector DB Services
+    # Użyj LOCAL_SEARCH_INDEX dla głównej kolekcji (dynamic RAG)
+    # QDRANT_COLLECTION_NAME jest dla innych celów (opcjonalne)
     vector_db_service = providers.Singleton(
         QdrantService,
         url=config_service().get_vector_db_config().get('url', 'http://localhost:6333'),
-        collection_name=config_service().get_vector_db_config().get('collection_name', 'chat_collection'),
+        collection_name=config_service().get_search_config().get('index_name', 'PierwszaKolekcjaOnline'),
         embedding_service=embedding_service,  # Inject embedding service
         text_cleaner_service=text_cleaner_service  # Inject text cleaner service
     )

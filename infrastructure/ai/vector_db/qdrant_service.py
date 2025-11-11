@@ -134,16 +134,13 @@ class QdrantService(IVectorDbService):
     async def search(self, query: str, limit: int = 5) -> Result[List[RAGChunk], str]:
         """Search vector database"""
         self.logger.info(f"QdrantService - Starting search for: '{query}' with limit: {limit}")
-        print(f"DEBUG: QdrantService - Starting search for: '{query}' with limit: {limit}")
         
         result = await self.search_service.search_by_text(self.collection_name, query, limit, vector_size=self.vector_size, embedding_service=self.embedding_service_provider)
         
         if result.is_success:
             self.logger.info(f"QdrantService - Search successful, found {len(result.value)} chunks")
-            print(f"DEBUG: QdrantService - Search successful, found {len(result.value)} chunks")
         else:
             self.logger.error(f"QdrantService - Search failed: {result.error}")
-            print(f"DEBUG: QdrantService - Search failed: {result.error}")
         
         return result
     

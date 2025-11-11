@@ -10,6 +10,7 @@ import 'dart:html' as html;
 import 'dart:convert' show utf8;
 import 'dart:async';
 import 'text_formatter.dart';
+import 'config/api_config.dart';
 
 // Color palette - Pastel Elegant Theme
 class AppColors {
@@ -131,7 +132,7 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
   // Sentence-by-sentence TTS
   String _lastSpokenText = '';
   List<String> _spokenSentences = [];
-  
+
   // TTS Queue system
   List<String> _ttsQueue = [];
   bool _isSpeaking = false;
@@ -162,8 +163,8 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
     final logEntry = '[$timestamp] $message';
     setState(() {
       _debugLogs.add(logEntry);
-      // Keep only last 50 logs
-      if (_debugLogs.length > 50) {
+      // Keep only last 200 logs
+      if (_debugLogs.length > 200) {
         _debugLogs.removeAt(0);
       }
     });
@@ -342,7 +343,7 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       print('🔍 Loading vector context for query: $query');
       
       final response = await http.post(
-        Uri.parse('http://localhost:8080/api/vector/search'),
+        ApiConfig.getUri(ApiConfig.vectorSearch),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'query': query}),
       );
@@ -374,7 +375,7 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       print('📊 Getting knowledge base statistics...');
       
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/chat/knowledge/stats'),
+        ApiConfig.getUri(ApiConfig.knowledgeStats),
         headers: {'Content-Type': 'application/json'},
       );
       
@@ -398,7 +399,7 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       print('🔧 Getting service capabilities...');
       
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/chat/capabilities'),
+        ApiConfig.getUri(ApiConfig.capabilities),
         headers: {'Content-Type': 'application/json'},
       );
       
@@ -518,7 +519,7 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       // Send to our Whisper API
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://localhost:8080/api/voice/transcribe'),
+        ApiConfig.getUri(ApiConfig.transcribe),
       );
       
       request.files.add(http.MultipartFile.fromBytes(
@@ -608,7 +609,7 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       // Send to our Whisper API
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://localhost:8080/api/voice/transcribe'),
+        ApiConfig.getUri(ApiConfig.transcribe),
       );
       
       request.files.add(http.MultipartFile.fromBytes(
@@ -684,13 +685,13 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
     developer.log('💬 Sending text to AI via SSE: $text', name: 'VoiceApp');
     
     try {
-      _addDebugLog('📤 Starting SSE connection to: http://localhost:8080/api/message/stream');
+      _addDebugLog('📤 Starting SSE connection to: ${ApiConfig.messageStream}');
       
       // Create AI message placeholder for streaming
       ChatMessage? aiMessage;
       String fullResponse = '';
       
-      final request = http.Request('POST', Uri.parse('http://localhost:8080/api/message/stream'));
+      final request = http.Request('POST', ApiConfig.getUri(ApiConfig.messageStream));
       request.headers.addAll({
         'Content-Type': 'application/json',
         'Accept': 'text/event-stream',
@@ -720,7 +721,11 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
             if (line.startsWith('data: ')) {
               try {
                 final data = json.decode(line.substring(6));
-                _addDebugLog('📨 SSE Data: ${data['type']}');
+                
+                // Loguj tylko typy inne niż 'chunk' (chunk jest za częsty)
+                if (data['type'] != 'chunk') {
+                  _addDebugLog('📨 SSE Data: ${data['type']}');
+                }
                 
                 switch (data['type']) {
                   case 'session':
@@ -729,7 +734,19 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
                     break;
                     
                   case 'status':
-                    _addDebugLog('ℹ️ Status: ${data['message']}');
+                    final statusMessage = data['message'] ?? '';
+                    // Wyświetlaj logi RAG, ukryj logi o dźwiękach
+                    if (statusMessage.contains('RAG') || 
+                        statusMessage.contains('Dynamic') ||
+                        statusMessage.contains('Znaleziono') ||
+                        statusMessage.contains('wektor')) {
+                      _addDebugLog('📚 RAG: ${data['message']}');
+                    } else if (!statusMessage.contains('dźwięk') && 
+                               !statusMessage.contains('audio') &&
+                               !statusMessage.contains('TTS') &&
+                               !statusMessage.contains('speech')) {
+                      _addDebugLog('ℹ️ Status: ${data['message']}');
+                    }
                     break;
                     
                   case 'chunk':
@@ -759,8 +776,10 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
                       });
                     }
                     
-                    // Check for complete sentences and speak them immediately
-                    _processSentenceTTS(fullResponse);
+                    // Process TTS for each chunk (jak w oryginalnej wersji)
+                    if (!_isMuted && content.trim().isNotEmpty) {
+                      _processSentenceTTS(fullResponse);
+                    }
                     
                     _scrollToBottom();
                     break;
@@ -859,7 +878,7 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
     try {
       // For Flutter Web, use simple POST instead of MultipartRequest
       final response = await http.post(
-        Uri.parse('http://localhost:8080/api/voice/speak'),
+        ApiConfig.getUri(ApiConfig.speak),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'text=${Uri.encodeComponent(cleanText)}&voice=pl-PL-default',
       );
@@ -868,8 +887,10 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
       final data = json.decode(response.body);
       
       if (data['status'] == 'ok') {
-        print('✅ TTS successful, playing audio from: http://localhost:8080${data['audio_url']}');
-        await _playAudio('http://localhost:8080${data['audio_url']}');
+        // Use ApiConfig to get proper audio URL (handles Docker proxy)
+        final audioUrl = ApiConfig.getAudioUrl(data['audio_url'] ?? '');
+        print('✅ TTS successful, playing audio from: $audioUrl');
+        await _playAudio(audioUrl);
       } else {
         print('❌ TTS failed: ${data['message']}');
       }
@@ -884,7 +905,17 @@ class _VoiceHomePageState extends State<VoiceHomePage> {
         _isPlaying = true;
       });
       
-      await _player.play(UrlSource(url));
+      // Convert relative URL to absolute URL for Flutter Web
+      // In Docker, nginx proxy handles /static/* routing
+      String audioUrl = url;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        // Relative URL - construct absolute URL using current origin
+        final origin = html.window.location.origin;
+        audioUrl = '$origin$url';
+      }
+      
+      _addDebugLog('🎵 Playing audio from: $audioUrl');
+      await _player.play(UrlSource(audioUrl));
       
       // Wait for audio to complete
       await _player.onPlayerComplete.first;

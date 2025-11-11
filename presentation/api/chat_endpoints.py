@@ -493,11 +493,25 @@ async def _get_idioms_context(chat_agent_service: ChatAgentService, collection_n
         from infrastructure.ai.vector_db.qdrant.search_service import SearchService
         from domain.services.ITextCleanerService import ITextCleanerService
         
+        # Pobierz URL z vector_db_service (zamiast hardcoded localhost)
+        qdrant_url = knowledge_service.vector_db_service.url
+        
         # Stwórz tymczasowy serwis wyszukiwania dla konkretnej kolekcji
         search_service = SearchService(
-            url="http://localhost:6333",
+            url=qdrant_url,
             text_cleaner_service=knowledge_service.text_cleaner_service
         )
+        
+        # Sprawdź czy kolekcja istnieje przed wyszukiwaniem
+        from infrastructure.ai.vector_db.qdrant.collection_service import CollectionService
+        collection_service = CollectionService(qdrant_url)
+        collection_exists_result = await collection_service.collection_exists(collection_name)
+        
+        if not collection_exists_result.is_success or not collection_exists_result.value:
+            logger.warning(f"⚠️ Kolekcja '{collection_name}' nie istnieje w Qdrant!")
+            logger.warning(f"   Dostępne kolekcje można sprawdzić w Qdrant UI: http://localhost:6333/dashboard")
+            logger.warning(f"   Aby dodać idiomy, utwórz kolekcję '{collection_name}' i zaimportuj dane.")
+            return []
         
         # Wykonaj wyszukiwanie w docelowej kolekcji
         search_result = await search_service.search_by_text(
@@ -741,28 +755,82 @@ async def send_message_streaming(
             if history_result.is_error:
                 logger.error(f"Błąd pobierania historii: {history_result.error}")
             
-            # # KROK 5: Dynamic RAG
+            # # KROK 5: Dynamic RAG (z timeoutem, żeby nie blokować odpowiedzi)
             # yield f"data: {json.dumps({'type': 'status', 'message': 'Analizowanie kontekstu...'})}\n\n"
             
-            dynamic_query_result = await dynamic_rag_service.decide_vector_query(
-                conversation_context=conversation_history,
-                current_message=message,
-                user_context=user_context
-            )
-            
             dynamic_vector_results = []
-            if dynamic_query_result.is_success:
-                dynamic_query = dynamic_query_result.value
-                yield f"data: {json.dumps({'type': 'status', 'message': f'Dynamic RAG: {dynamic_query[:50]}...'})}\n\n"
-                dynamic_search_result = await dynamic_rag_service.search_with_filtering(
-                    query=dynamic_query,
-                    score_threshold=0.75,  # Zmniejszone z 0.85 dla lepszej ilości wyników
-                    limit=5,
-                    user_context=user_context
+            
+            logger.info("=" * 80)
+            logger.info("🔍 ROZPOCZYNAM PROCES RAG - WYSZUKIWANIE W BAZIE WEKTOROWEJ")
+            logger.info("=" * 80)
+            logger.info(f"📤 Wiadomość użytkownika: {message[:100]}...")
+            logger.info(f"📚 Historia rozmowy: {len(conversation_history)} wiadomości")
+            
+            try:
+                # Użyj asyncio.wait_for żeby RAG nie blokował odpowiedzi dłużej niż 10 sekund
+                yield f"data: {json.dumps({'type': 'status', 'message': '🔍 Analizowanie zapytania RAG...'})}\n\n"
+                
+                logger.info(f"⏱️ Rozpoczynam decide_vector_query z timeout=30.0s...")
+                dynamic_query_result = await asyncio.wait_for(
+                    dynamic_rag_service.decide_vector_query(
+                        conversation_context=conversation_history,
+                        current_message=message,
+                        user_context=user_context
+                    ),
+                    timeout=30.0  # Zwiększone z 10.0 na 30.0 sekund - LLM może potrzebować więcej czasu
                 )
-                if dynamic_search_result.is_success:
-                    dynamic_vector_results = dynamic_search_result.value
-                    yield f"data: {json.dumps({'type': 'status', 'message': f'Znaleziono {len(dynamic_vector_results)} wyników RAG'})}\n\n"
+                logger.info(f"⏱️ decide_vector_query zakończone: success={dynamic_query_result.is_success}")
+                
+                if dynamic_query_result.is_success:
+                    dynamic_query = dynamic_query_result.value
+                    logger.info(f"✅ Wygenerowano zapytanie RAG: '{dynamic_query}'")
+                    yield f"data: {json.dumps({'type': 'status', 'message': f'🔍 Zapytanie RAG: {dynamic_query[:50]}...'})}\n\n"
+                    
+                    logger.info(f"🔎 Wyszukiwanie w bazie wektorowej z zapytaniem: '{dynamic_query}'")
+                    logger.info(f"⏱️ Rozpoczynam search_with_filtering z timeout=15.0s...")
+                    dynamic_search_result = await asyncio.wait_for(
+                        dynamic_rag_service.search_with_filtering(
+                            query=dynamic_query,
+                            score_threshold=0.50,  # Obniżone z 0.60 na 0.50 dla lepszych wyników
+                            limit=10,  # Zwiększone z 5 na 10, żeby mieć więcej wyników do filtrowania
+                            user_context=user_context
+                        ),
+                        timeout=15.0  # Zwiększone z 5.0 na 15.0 sekund - embedding + wyszukiwanie może trwać dłużej
+                    )
+                    logger.info(f"⏱️ search_with_filtering zakończone: success={dynamic_search_result.is_success}")
+                    
+                    if dynamic_search_result.is_success:
+                        dynamic_vector_results = dynamic_search_result.value
+                        logger.info("=" * 80)
+                        logger.info(f"✅ WYSZUKIWANIE RAG ZAKOŃCZONE: Znaleziono {len(dynamic_vector_results)} wyników")
+                        logger.info("=" * 80)
+                        
+                        if dynamic_vector_results:
+                            for i, result in enumerate(dynamic_vector_results[:3], 1):
+                                score = result.get('score', 0.0)
+                                topic = result.get('topic', 'N/A')
+                                content_preview = str(result.get('facts', result.get('content', '')))[:150]
+                                logger.info(f"   📋 Wynik {i}: Score={score:.3f}, Topic='{topic}', Content='{content_preview}...'")
+                            
+                            logger.info(f"📋 Przykładowy wynik RAG (pełny): {str(dynamic_vector_results[0])[:300]}...")
+                        else:
+                            logger.warning("⚠️ Wyszukiwanie zwróciło pustą listę wyników!")
+                        
+                        yield f"data: {json.dumps({'type': 'status', 'message': f'✅ Znaleziono {len(dynamic_vector_results)} wyników RAG'})}\n\n"
+                    else:
+                        logger.error(f"❌ Błąd wyszukiwania RAG: {dynamic_search_result.error}")
+                        yield f"data: {json.dumps({'type': 'status', 'message': f'❌ Błąd wyszukiwania RAG'})}\n\n"
+                else:
+                    logger.warning(f"⚠️ Błąd decyzji RAG: {dynamic_query_result.error}")
+                    yield f"data: {json.dumps({'type': 'status', 'message': '⚠️ Nie udało się wygenerować zapytania RAG'})}\n\n"
+            except asyncio.TimeoutError:
+                logger.warning("⏱️ RAG timeout - kontynuowanie bez kontekstu RAG")
+                yield f"data: {json.dumps({'type': 'status', 'message': '⏱️ RAG timeout - kontynuowanie bez kontekstu'})}\n\n"
+            except Exception as e:
+                logger.error(f"❌ Błąd RAG: {str(e)}")
+                import traceback
+                logger.error(f"❌ Traceback: {traceback.format_exc()}")
+                yield f"data: {json.dumps({'type': 'status', 'message': f'❌ Błąd RAG: {str(e)[:50]}'})}\n\n"
                 
 
             # KROK 6: Budowanie wiadomości
@@ -773,30 +841,87 @@ async def send_message_streaming(
                 user_context=user_context
             )
             
+            logger.info("=" * 80)
+            logger.info(f"📝 PRZED DODANIEM RAG: {len(complete_messages)} wiadomości w kontekście")
+            logger.info("=" * 80)
+            
             if dynamic_vector_results:
                  from domain.models.rag_result import RAGResult, RAGContextFormatter
+                 logger.info("=" * 80)
+                 logger.info(f"🔄 KONWERTOWANIE {len(dynamic_vector_results)} WYNIKÓW NA RAGResult...")
+                 logger.info("=" * 80)
+                 
                  rag_results = [RAGResult.from_vector_result(result) for result in dynamic_vector_results]
+                 logger.info(f"✅ Skonwertowano {len(rag_results)} wyników RAG")
+                 
+                 for i, rag_result in enumerate(rag_results, 1):
+                     topic = rag_result.metadata.get('topic', 'N/A') if rag_result.metadata else 'N/A'
+                     logger.info(f"   📋 RAG {i}/{len(rag_results)}: ID={rag_result.id}, Score={rag_result.score:.3f}")
+                     logger.info(f"      Topic: {topic}")
+                     logger.info(f"      Content: {rag_result.content[:200]}...")
+                 
+                 logger.info("=" * 80)
+                 logger.info("📚 FORMATOWANIE KONTEKSTU RAG...")
+                 logger.info("=" * 80)
+                 
                  rag_context = RAGContextFormatter.format_as_system_message(
                      rag_results=rag_results,
                      system_query=dynamic_query_result.value if dynamic_query_result.is_success else "",
                      user_context=user_context
                  )
+                 
+                 logger.info(f"✅ Sformatowano kontekst RAG: {len(rag_context)} znaków")
+                 logger.info("=" * 80)
+                 logger.info("📚 PEŁNY KONTEKST RAG (który zostanie dodany do promptu):")
+                 logger.info("=" * 80)
+                 logger.info(rag_context)
+                 logger.info("=" * 80)
                 
                  complete_messages.insert(-1, ChatMessage(
                      role=MessageRole.SYSTEM,
                      content=rag_context,
                      timestamp=datetime.now()
                  ))
+                 
+                 logger.info("=" * 80)
+                 logger.info(f"✅ DODANO KONTEKST RAG JAKO WIADOMOŚĆ SYSTEMOWĄ!")
+                 logger.info(f"   Pozycja w liście: {len(complete_messages)-1} (przed ostatnią wiadomością użytkownika)")
+                 logger.info(f"   Rozmiar kontekstu: {len(rag_context)} znaków")
+                 logger.info("=" * 80)
+                 
+                 yield f"data: {json.dumps({'type': 'status', 'message': f'✅ Dodano {len(rag_results)} wyników RAG do kontekstu'})}\n\n"
+            else:
+                logger.warning("=" * 80)
+                logger.warning("⚠️ BRAK WYNIKÓW RAG - dynamic_vector_results jest puste lub None")
+                logger.warning("⚠️ LLM będzie działał BEZ kontekstu z bazy wektorowej!")
+                logger.warning("=" * 80)
+                yield f"data: {json.dumps({'type': 'status', 'message': '⚠️ Brak wyników RAG - odpowiedź bez kontekstu'})}\n\n"
             
             # KROK 7: Streaming LLM
             yield f"data: {json.dumps({'type': 'status', 'message': 'Generowanie odpowiedzi...'})}\n\n"
             
             # 🎯 LOGOWANIE KOŃCOWEJ STRUKTURY KONTEKSTU
-            #logger.info(f"🎯 KOŃCOWA STRUKTURA KONTEKSTU ({len(complete_messages)} wiadomości):")
-            #for i, msg in enumerate(complete_messages, 1):
-            #    logger.info(f"   {i}. {msg.role.value.upper()}: {len(msg.content)} znaków")
-            #    if msg.role == MessageRole.SYSTEM and "KONTEKST Z PAMIĘCI" in msg.content:
-            #        logger.info(f"      ⭐ TO JEST RAG CONTEXT!")
+            logger.info("=" * 80)
+            logger.info(f"🎯 KOŃCOWA STRUKTURA KONTEKSTU ({len(complete_messages)} wiadomości):")
+            logger.info("=" * 80)
+            for i, msg in enumerate(complete_messages, 1):
+                role_str = msg.role.value.upper()
+                content_len = len(msg.content)
+                logger.info(f"   {i}. {role_str}: {content_len} znaków")
+                
+                # Sprawdź czy to kontekst RAG
+                if msg.role == MessageRole.SYSTEM:
+                    if "KONTEKST Z PAMIĘCI" in msg.content or "BAZA WIEDZY" in msg.content:
+                        logger.info(f"      ⭐⭐ TO JEST RAG CONTEXT! ({content_len} znaków)")
+                        logger.info(f"      📄 Preview: {msg.content[:300]}...")
+                    elif "IDIOM" in msg.content.upper() or "REFLECT" in msg.content.upper():
+                        logger.info(f"      📚 To jest kontekst idiomów")
+                    else:
+                        logger.info(f"      ℹ️ Inna wiadomość systemowa")
+            
+            logger.info("=" * 80)
+            logger.info("🚀 ROZPOCZYNAM STREAMING DO LLM Z POWYŻSZYM KONTEKSTEM")
+            logger.info("=" * 80)
             
             llm_service = chat_agent_service.llm_service
             response_parts = []

@@ -1,17 +1,22 @@
-## Key Endpoints (update 2025-10-30)
+## Key Endpoints (update 2025-11-11)
 
-- `POST /api/message` – przetwarzanie wiadomości (idiomy, historia, RAG, LLM, zapis)
-- `POST /api/message/stream` – SSE streaming odpowiedzi
+- `POST /api/message/stream` – **SSE streaming odpowiedzi** (zalecane) - główne przetwarzanie wiadomości z Dynamic RAG
+- `POST /api/message` – Synchroniczne przetwarzanie wiadomości (idiomy, historia, RAG, LLM, zapis)
 - `POST /api/vector/search` – wyszukiwanie w bazie wektorowej
 - `GET /api/knowledge/stats` – statystyki wiedzy
+- `GET /api/capabilities` – Możliwości serwisów
+- `POST /api/voice/transcribe` – Transkrypcja audio (Speech-to-Text)
+- `POST /api/voice/speak` – Synteza mowy (Text-to-Speech)
 - `POST /api/sessions` / `GET /api/sessions/{id}` / `GET /api/sessions/{id}/history` – zarządzanie sesjami
 
 Uwagi:
 - SYSTEM prompt wysyłany do LLM jest pojedynczy i zawiera sekcje PERSONA/FORMAT/ROLE/USER PROFILE/IDIOMS.
 - Historia rozmowy jest filtrowana do par USER→ASSISTANT, aby zachować alternację ról dla LM Studio.
+- **Dynamic RAG**: LLM generuje zapytania do bazy wektorowej na podstawie kontekstu rozmowy.
+- **Kolekcje**: Idiomy z `CuratedIdiomsForAI`, dynamic RAG z `PierwszaKolekcjaOnline`.
 
-Last Updated: 2025-10-30  
-Version: 1.1.0
+Last Updated: 2025-11-11  
+Version: 1.2.0
 # 🌐 API Endpoints - Dokumentacja API
 
 ## 📋 Przegląd

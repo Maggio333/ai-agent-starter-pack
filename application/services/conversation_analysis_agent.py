@@ -56,10 +56,10 @@ class ConversationAnalysisAgent:
                 vector_results = vector_search_result.value
             elif vector_search_result.is_success and isinstance(vector_search_result.value, str):
                 # If it's a string (error message), treat as empty results
-                self.logger.warning(f"Vector search returned string instead of list: {vector_search_result.value}")
+                self.logger.warning(f"Wyszukiwanie wektorowe zwróciło string zamiast listy: {vector_search_result.value}")
                 vector_results = []
             else:
-                self.logger.warning(f"Vector search failed: {vector_search_result.error if vector_search_result.is_error else 'Unknown error'}")
+                self.logger.warning(f"Wyszukiwanie wektorowe nie powiodło się: {vector_search_result.error if vector_search_result.is_error else 'Nieznany błąd'}")
                 vector_results = []
             
             return Result.success({
@@ -70,7 +70,7 @@ class ConversationAnalysisAgent:
             })
             
         except Exception as e:
-            return Result.error(f"Conversation analysis failed: {str(e)}")
+            return Result.error(f"Analiza rozmowy nie powiodła się: {str(e)}")
     
     def _build_analysis_prompt(
         self, 

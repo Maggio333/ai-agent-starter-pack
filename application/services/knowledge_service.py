@@ -35,7 +35,7 @@ class KnowledgeService(IKnowledgeService):
             # Validation using ROP
             query_validator = self.rop_service.validate(
                 lambda q: len(q.strip()) > 0 and len(q.strip()) < 2000,
-                "Query must be between 1 and 2000 characters"
+                "Zapytanie musi mieć od 1 do 2000 znaków"
             )
             
             validation_result = query_validator(query_lower)
@@ -44,65 +44,81 @@ class KnowledgeService(IKnowledgeService):
             
             # Try vector database search first using ROP
             if self.vector_db_service:
+                self.logger.info("=" * 80)
+                self.logger.info(f"🔍 KNOWLEDGE SERVICE: Wyszukiwanie w bazie wektorowej")
+                self.logger.info(f"   Query: '{query[:100]}...'")
+                self.logger.info(f"   Limit: {limit}")
+                self.logger.info("=" * 80)
+                
                 # Clean query using TextCleanerService to avoid Unicode issues
                 if self.text_cleaner_service:
                     clean_result = await self.text_cleaner_service.clean_text(query)
                     if clean_result.is_success:
                         clean_query = clean_result.value
-                        self.logger.info(f"KnowledgeService - cleaned query: '{clean_query[:100]}...'")
+                        self.logger.info(f"✅ Oczyszczono zapytanie: '{clean_query[:100]}...'")
                     else:
                         clean_query = query.encode('utf-8', errors='ignore').decode('utf-8')
-                        self.logger.warning(f"KnowledgeService - TextCleanerService failed: {clean_result.error}, using basic UTF-8 cleaning")
+                        self.logger.warning(f"⚠️ TextCleanerService failed: {clean_result.error}, using basic UTF-8 cleaning")
                 else:
                     clean_query = query.encode('utf-8', errors='ignore').decode('utf-8')
-                    self.logger.warning("KnowledgeService - TextCleanerService not available, using basic UTF-8 cleaning")
+                    self.logger.warning("⚠️ TextCleanerService not available, using basic UTF-8 cleaning")
                 
-                self.logger.info(f"KnowledgeService - vector_db_service is available, searching for: '{clean_query[:100]}...'")
-                print(f"DEBUG: KnowledgeService - vector_db_service is available, searching for: '{clean_query[:100]}...'")
+                self.logger.info(f"📤 Wywołuję vector_db_service.search z query: '{clean_query[:100]}...'")
                 
                 # Search vector database directly with cleaned query
                 vector_results = await self.vector_db_service.search(clean_query, limit=limit)
-                self.logger.info(f"KnowledgeService - vector search result: success={vector_results.is_success}, value_count={len(vector_results.value) if vector_results.is_success else 0}")
-                print(f"DEBUG: KnowledgeService - vector search result: success={vector_results.is_success}, value_count={len(vector_results.value) if vector_results.is_success else 0}")
+                
+                self.logger.info("=" * 80)
+                self.logger.info(f"📥 Wynik wyszukiwania: success={vector_results.is_success}")
+                if vector_results.is_success:
+                    result_count = len(vector_results.value) if vector_results.value else 0
+                    self.logger.info(f"   Znaleziono {result_count} wyników")
+                else:
+                    self.logger.error(f"   Błąd: {vector_results.error}")
+                self.logger.info("=" * 80)
                 
                 if vector_results.is_success and vector_results.value:
                     # Convert vector results to knowledge base format
-                    self.logger.info(f"KnowledgeService - converting {len(vector_results.value)} vector results to knowledge base format")
-                    print(f"DEBUG: KnowledgeService - converting {len(vector_results.value)} vector results to knowledge base format")
+                    self.logger.info(f"🔄 Konwertuję {len(vector_results.value)} wyników do formatu knowledge base...")
                     
                     results = []
                     for i, chunk in enumerate(vector_results.value):
                         # Clean text to avoid encoding issues
                         clean_text = chunk.text_chunk.encode('utf-8', errors='ignore').decode('utf-8')
-                        self.logger.info(f"KnowledgeService - processing chunk {i+1}: {clean_text[:50]}...")
-                        safe_text = clean_text[:50].encode('utf-8', errors='ignore').decode('utf-8')
-                        print(f"DEBUG: KnowledgeService - processing chunk {i+1}: {safe_text}...")
+                        score = chunk.score
+                        source = chunk.source or "nieznany"
+                        
+                        self.logger.info(f"   📋 Chunk {i+1}: Score={score:.4f}, Source='{source}', Text='{clean_text[:80]}...'")
                         
                         results.append({
-                            "topic": chunk.source or "unknown",  # Używamy source zamiast topic
-                            "score": chunk.score,
+                            "topic": source,  # Używamy source zamiast topic
+                            "score": score,
                             "facts": [clean_text],
                             "total_facts": 1,
                             "source": "vector_db"
                         })
                     
-                    self.logger.info(f"KnowledgeService - returning {len(results)} results from vector database")
-                    print(f"DEBUG: KnowledgeService - returning {len(results)} results from vector database")
+                    self.logger.info("=" * 80)
+                    self.logger.info(f"✅ KNOWLEDGE SERVICE: Zwracam {len(results)} wyników")
+                    self.logger.info("=" * 80)
                     return Result.success(results)
                 else:
-                    self.logger.warning("KnowledgeService - Vector database search returned no results or failed.")
-                    print("DEBUG: KnowledgeService - Vector database search returned no results or failed.")
+                    self.logger.warning("=" * 80)
+                    self.logger.warning("⚠️ KNOWLEDGE SERVICE: Brak wyników z bazy wektorowej!")
+                    if not vector_results.is_success:
+                        self.logger.warning(f"   Błąd: {vector_results.error}")
+                    elif not vector_results.value:
+                        self.logger.warning("   Baza wektorowa zwróciła pustą listę")
+                    self.logger.warning("=" * 80)
                     # No fallback - return empty results
                     return Result.success([])
             else:
                 self.logger.warning("KnowledgeService - Vector DB service not available.")
-                print("DEBUG: KnowledgeService - Vector DB service not available.")
                 # No fallback - return empty results
                 return Result.success([])
         except Exception as e:
-            error_message = f"Failed to search knowledge base: {str(e)}"
+            error_message = f"Nie udało się przeszukać bazy wiedzy: {str(e)}"
             self.logger.error(error_message)
-            print(f"ERROR: KnowledgeService - {error_message}")
             return Result.error(error_message)
     
     async def add_knowledge(self, topic: str, facts: List[str]) -> Result[bool, str]:
@@ -121,7 +137,7 @@ class KnowledgeService(IKnowledgeService):
             }
             return Result.success(stats)
         except Exception as e:
-            return Result.error(f"Failed to get knowledge stats: {str(e)}")
+            return Result.error(f"Nie udało się pobrać statystyk bazy wiedzy: {str(e)}")
     
     async def get_topic_facts(self, topic: str) -> Result[List[str], str]:
         """Get facts for a topic - not implemented (vector DB only)"""
@@ -151,7 +167,7 @@ class KnowledgeService(IKnowledgeService):
             ]
             return Result.success(history)
         except Exception as e:
-            return Result.error(f"Failed to get search history: {str(e)}")
+            return Result.error(f"Nie udało się pobrać historii wyszukiwań: {str(e)}")
     
     async def clear_search_history(self) -> Result[bool, str]:
         """Clear search history"""
@@ -159,7 +175,7 @@ class KnowledgeService(IKnowledgeService):
             self._search_history.clear()
             return Result.success(True)
         except Exception as e:
-            return Result.error(f"Failed to clear search history: {str(e)}")
+            return Result.error(f"Nie udało się wyczyścić historii wyszukiwań: {str(e)}")
     
     async def export_knowledge_base(self) -> Result[Dict[str, Any], str]:
         """Export knowledge base - not implemented (vector DB only)"""
@@ -182,4 +198,4 @@ class KnowledgeService(IKnowledgeService):
             }
             return Result.success(health_data)
         except Exception as e:
-            return Result.error(f"Health check failed: {str(e)}")
+            return Result.error(f"Sprawdzenie stanu serwisu nie powiodło się: {str(e)}")

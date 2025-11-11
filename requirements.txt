@@ -13,8 +13,9 @@ cloudpickle==3.1.1
 colorama==0.4.6
 cryptography==46.0.2
 docstring_parser==0.17.0
+dependency-injector>=4.41.0
 exceptiongroup==1.3.0
-fastapi==0.119.0
+fastapi>=0.115.0
 google-adk==1.14.1
 google-api-core==2.26.0
 google-api-python-client==2.184.0
@@ -55,7 +56,7 @@ jsonschema-specifications==2025.9.1
 Mako==1.3.10
 MarkupSafe==3.0.3
 mcp==1.17.0
-numpy==2.2.6
+numpy>=2.0.0
 opentelemetry-api==1.37.0
 opentelemetry-exporter-gcp-trace==1.10.0
 opentelemetry-resourcedetector-gcp==1.10.0a0
@@ -67,9 +68,9 @@ protobuf==6.32.1
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
 pycparser==2.23
-pydantic==2.12.2
-pydantic-settings==2.11.0
-pydantic_core==2.41.4
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+pydantic_core>=2.25.0
 pyparsing==3.2.5
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
@@ -96,17 +97,22 @@ tzdata==2025.2
 tzlocal==5.3.1
 uritemplate==4.2.0
 urllib3==2.5.0
-uvicorn==0.37.0
+uvicorn>=0.32.0
 watchdog==6.0.0
 websockets==15.0.1
 zipp==3.23.0
 
 # Voice features (STT/TTS)
-faster-whisper==1.0.1
-piper-tts==1.2.0
-librosa==0.10.1
-soundfile==0.12.1
+# Updated to latest versions for FFmpeg 6.x/7.x compatibility
+faster-whisper>=1.2.1
+av>=14.2.1
+piper-tts>=1.2.0
+librosa>=0.10.1
+soundfile>=0.12.1
 
 # WebSocket proxy for LM Studio
-websockets==12.0
-aiohttp==3.9.1
+# Note: websockets==15.0.1 already included above, removed duplicate
+aiohttp>=3.10.0
+
+# LiteLLM for LLM abstraction (required by google-adk)
+litellm>=1.0.0

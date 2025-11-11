@@ -4,7 +4,35 @@ Zaawansowany system chatbot z architekturą Clean Architecture, integrujący Flu
 
 ## 🚀 Quick Start
 
-### 1. Backend (FastAPI)
+### Opcja 1: Docker (Zalecane) 🐳
+
+Najprostszy sposób uruchomienia całego systemu:
+
+```bash
+cd python_agent
+
+# 1. Skopiuj plik konfiguracyjny
+cp env.example .env
+
+# 2. Uruchom LM Studio na hoście (port 8123)
+#    - Zainstaluj z https://lmstudio.ai/
+#    - Załaduj model
+#    - Uruchom Local Server (Settings → Local Server)
+
+# 3. Uruchom wszystkie serwisy
+docker-compose up --build
+
+# 4. Dostęp:
+#    - Frontend: http://localhost:3000
+#    - Backend API: http://localhost:8080
+#    - Qdrant UI: http://localhost:6333/dashboard
+```
+
+**Więcej informacji**: [DOCKER.md](DOCKER.md)
+
+### Opcja 2: Lokalne uruchomienie
+
+#### 1. Backend (FastAPI)
 ```bash
 cd python_agent
 # try dev autoreload (zalecane):
@@ -14,14 +42,14 @@ $env:RELOAD='true'; python main_fastapi.py
 ```
 **Server**: http://localhost:8080
 
-### 2. Frontend (Flutter)
+#### 2. Frontend (Flutter)
 ```bash
 cd presentation/ui/flutter_voice_ui
 flutter run -d web-server --web-port 3000
 ```
 **UI**: http://localhost:3000
 
-### 3. Vector Database (Qdrant)
+#### 3. Vector Database (Qdrant)
 ```bash
 docker run -p 6333:6333 qdrant/qdrant
 ```
@@ -34,50 +62,55 @@ docker run -p 6333:6333 qdrant/qdrant
 │                    PRESENTATION LAYER                        │
 ├─────────────────────────────────────────────────────────────┤
 │  Flutter UI (Voice + Chat)  │  FastAPI Endpoints           │
-│  - Microphone recording     │  - /api/chat/message         │
-│  - Text input              │  - /api/chat/sessions        │
-│  - Chat bubbles            │  - /api/vector/search        │
-│  - Audio playback          │  - /api/knowledge/stats      │
+│  - Microphone recording     │  - /api/message/stream (SSE) │
+│  - Text input               │  - /api/message              │
+│  - Chat bubbles             │  - /api/sessions             │
+│  - Audio playback           │  - /api/vector/search        │
+│  - TTS Queue                │  - /api/knowledge/stats      │
+│                              │  - /api/voice/*              │
 └─────────────────────────────────────────────────────────────┘
                                 │
 ┌─────────────────────────────────────────────────────────────┐
-│                    APPLICATION LAYER                       │
+│                        APPLICATION LAYER                     │
 ├─────────────────────────────────────────────────────────────┤
 │  ConversationAnalysisAgent  │  OrchestrationService        │
-│  - Analyzes context        │  - Routes requests           │
-│  - Decides vector queries   │  - Coordinates services      │
-│  - Meta-thinking           │  - Process requests           │
-│                            │                               │
-│  ChatAgentService          │  ConversationService          │
-│  - Knowledge search        │  - Session management         │
-│  - Vector DB access        │  - Message history            │
-│  - Service coordination    │  - Conversation storage       │
+│  ChatAgentService           │  ConversationService         │
+│  DynamicRAGService          │  PromptService               │
 └─────────────────────────────────────────────────────────────┘
-                                │
+                                │ uses
+┌─────────────────────────────────────────────────────────────┐
+│                          DOMAIN LAYER                       │
+├─────────────────────────────────────────────────────────────┤
+│  Entities: ChatMessage, RAGChunk, Result                    │
+│  Interfaces: ILLMService, IKnowledgeService, Repositories   │
+│  Policies: validation, invariants                           │
+└─────────────────────────────────────────────────────────────┘
+                                │ implemented by
 ┌─────────────────────────────────────────────────────────────┐
 │                    INFRASTRUCTURE LAYER                     │
 ├─────────────────────────────────────────────────────────────┤
 │  Vector Database (Qdrant)  │  LLM Service                  │
 │  - Embedding storage       │  - LM Studio/Ollama           │
 │  - Similarity search       │  - Text generation            │
-│  - Context retrieval        │  - Response processing        │
+│  - Context retrieval       │  - Response processing        │
 │                            │                               │
-│  Text Processing           │  Audio Services               │
-│  - Text cleaning           │  - Speech-to-Text             │
-│  - Unicode handling        │  - Text-to-Speech             │
-│  - Query preprocessing     │  - Audio playback             │
+│  SQLite ChatRepository     │  Text / Audio Services        │
+│  - CRUD/Threads/Stats      │  - Cleaning / STT / TTS       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## 🧠 Key Features
 
-### ✅ Ostatnie zmiany (dev)
-- Sklejanie wszystkich system promptów w JEDEN `SYSTEM` (sekcje: PERSONA, FORMAT, ROLE, opcjonalnie USER PROFILE, IDIOMS)
-- Poprawiona alternacja ról dla LM Studio (po SYSTEM zawsze USER; historia trimowana do par USER→ASSISTANT)
-- Stabilizacja streamingu (fix: `NoneType has no len`, bez podwójnych zapisów)
-- Auto-reload w dev: `uvicorn main_fastapi:app --reload` lub `$env:RELOAD='true'; python main_fastapi.py`
-- Globalny `conftest.py`: automatyczny PYTHONPATH i fallback dla async testów
-- Nowe testy `test_prompt_service.py` (system prompt combine + alternacja)
+### ✅ Ostatnie zmiany (2025-11-11)
+- **Docker Support**: Pełna konteneryzacja backendu i frontendu z Docker Compose
+- **Dynamic RAG**: Inteligentne zapytania do bazy wektorowej generowane przez LLM
+- **Streaming Responses**: Server-Sent Events (SSE) dla czasu rzeczywistego
+- **Voice Chat**: Nagrywanie głosu, transkrypcja i synteza mowy
+- **TTS Queue**: Kolejkowanie zdań dla płynnego odtwarzania audio
+- **Debug Panel**: Panel debugowy w Flutterze z 200 ostatnimi logami
+- **Szczegółowe logi**: Kompleksowe logowanie procesu RAG i wyszukiwania
+- **Polskie tłumaczenia**: Wszystkie system prompty i komunikaty po polsku
+- **Auto-reload w dev**: `uvicorn main_fastapi:app --reload` lub `$env:RELOAD='true'; python main_fastapi.py`
 
 
 ### 🤖 Conversation Analysis Agent
@@ -98,32 +131,36 @@ docker run -p 6333:6333 qdrant/qdrant
 - **Automatyczne przewijanie**
 - **Centralizowane zarządzanie kolorami**
 
-### 🔍 Vector Database Integration
-- **Wyszukiwanie kontekstowe** w bazie wektorowej
-- **Idiomy matematyczne** jako system prompt
-- **TopK=20** wyników dla idiomów
-- **Dynamiczne zapytania** na podstawie analizy
+### 🔍 Vector Database Integration (RAG)
+- **Dynamic RAG**: LLM generuje zapytania do bazy wektorowej na podstawie kontekstu rozmowy
+- **Inteligentne filtrowanie**: Score threshold (0.50) dla jakości wyników
+- **Idiomy matematyczne**: Automatyczne pobieranie idiomów jako system prompt
+- **Kontekst w czasie rzeczywistym**: Wyniki RAG dodawane do promptu przed odpowiedzią LLM
+- **Szczegółowe logi**: Pełne śledzenie procesu wyszukiwania i filtrowania
 
 ## 🔄 Request Flow
 
 ```
 1. 👤 User Input (Voice/Text)
    ↓
-2. 📱 Flutter UI → HTTP POST /api/chat/message
+2. 📱 Flutter UI → HTTP POST /api/message/stream (SSE)
    ↓
-3. 🌐 FastAPI Backend Processing:
+3. 🌐 FastAPI Backend Processing (Streaming):
    ├─ 📝 Create/Get Session
    ├─ 🔍 Get Idioms from Vector DB (System Prompt)
-   ├─ 🎯 Build System Prompt with Reflective Idioms
-   ├─ 💬 Get Conversation History (2 interactions)
-   ├─ 🤖 Analysis Agent analyzes and decides vector query
-   ├─ 📚 Build Enhanced Message with Context
-   ├─ 🎭 Process through Orchestration Service
+   ├─ 💬 Get Conversation History
+   ├─ 🤖 Dynamic RAG: LLM generuje zapytanie do bazy wektorowej
+   ├─ 📚 Wyszukiwanie w bazie wektorowej (score threshold: 0.50)
+   ├─ 🎯 Build System Prompt z kontekstem RAG
+   ├─ 🎭 Process through LLM Service (Streaming)
    └─ 💾 Save Conversation to Session
    ↓
-4. 📱 Flutter UI ← Response + Audio
+4. 📱 Flutter UI ← SSE Stream (chunks + status)
+   ├─ 📨 Chunk: Fragment odpowiedzi
+   ├─ 📚 Status: Informacje o RAG
+   └─ ✅ Done: Zakończenie streamingu
    ↓
-5. 🔊 Audio Playback (if not muted)
+5. 🔊 TTS Queue: Automatyczne odtwarzanie zdań
 ```
 
 ## 📊 System Components
@@ -199,11 +236,18 @@ class AppColors {
 ## 🌐 FastAPI Backend
 
 ### Key Endpoints
-- `POST /api/chat/message` - Główne przetwarzanie wiadomości
-- `GET /api/chat/sessions` - Zarządzanie sesjami
+- `POST /api/message/stream` - **Streaming endpoint (SSE)** - główne przetwarzanie wiadomości z RAG
+- `POST /api/message` - Synchroniczne przetwarzanie wiadomości
+- `POST /api/sessions` - Tworzenie nowej sesji
+- `GET /api/sessions/{session_id}` - Pobieranie sesji
+- `GET /api/sessions/{session_id}/history` - Historia rozmowy w sesji
+- `GET /api/sessions/active` - Lista aktywnych sesji
+- `DELETE /api/sessions/{session_id}` - Usuwanie sesji
 - `POST /api/vector/search` - Wyszukiwanie w bazie wektorowej
 - `GET /api/knowledge/stats` - Statystyki bazy wiedzy
 - `GET /api/capabilities` - Możliwości serwisów
+- `POST /api/voice/transcribe` - Transkrypcja audio (Speech-to-Text)
+- `POST /api/voice/speak` - Synteza mowy (Text-to-Speech)
 
 ### Dependency Injection
 ```python
@@ -213,19 +257,30 @@ conversation_analysis_agent = providers.Singleton(ConversationAnalysisAgent, ...
 orchestration_service = providers.Singleton(OrchestrationService, ...)
 ```
 
-## 🔍 Vector Database Integration
+## 🔍 Vector Database Integration (RAG)
 
 ### Configuration
 - **Provider**: Qdrant
-- **URL**: http://localhost:6333
-- **Collection**: chat_collection
-- **TopK**: 20 wyników dla idiomów, zmienne dla analizy
+- **URL**: http://localhost:6333 (lub `http://host.docker.internal:6333` w Docker)
+- **Collections**:
+  - `CuratedIdiomsForAI` - **Kolekcja idiomów** (refleksyjne idiomy matematyczne)
+  - `PierwszaKolekcjaOnline` - **Standardowa kolekcja** (ogólne dane, dynamic RAG)
+  - `chat_collection` - Kolekcja czatu (opcjonalna)
+- **Embedding Provider**: LM Studio (lub inny z `EMBEDDING_PROVIDER`)
+- **Score Threshold**: 0.50 (dla dynamic RAG), 0.75 (dla idiomów)
 
-### Search Process
-1. **Idioms Search**: Hardcoded query dla refleksyjnych idiomów
-2. **Analysis Search**: Dynamiczne zapytanie na podstawie analizy konwersacji
-3. **Results Processing**: Konwersja do formatu bazy wiedzy
-4. **Context Building**: Integracja do system prompt
+### Dynamic RAG Process
+1. **LLM Analysis**: LLM analizuje kontekst rozmowy i generuje zapytanie do bazy wektorowej
+2. **Vector Search**: Wyszukiwanie w Qdrant z embedding service
+3. **Filtering**: Filtrowanie wyników według score threshold (0.50)
+4. **Context Formatting**: Konwersja wyników do formatu RAGResult
+5. **System Message**: Dodanie kontekstu RAG jako wiadomość systemowa przed odpowiedzią LLM
+
+### Idioms Search
+- **Collection**: `CuratedIdiomsForAI` - dedykowana kolekcja dla idiomów
+- **Hardcoded Query**: "IDIOM_REFLECT REFLECTIVE THINKING CONCEPTS" dla refleksyjnych idiomów matematycznych
+- **TopK**: 20 wyników
+- **Usage**: Automatyczne dodawanie do system prompt przed każdą odpowiedzią LLM
 
 ## 🎭 Service Orchestration
 
@@ -251,17 +306,31 @@ Koordynuje wszystkie serwisy i routuje żądania:
 ```bash
 # LLM Configuration
 LLM_PROVIDER=lmstudio
-LLM_PROXY_URL=http://127.0.0.1:8123
-LLM_MODEL_NAME=model:1
+# Dla lokalnego uruchomienia: http://127.0.0.1:8123
+# Dla Docker: http://host.docker.internal:8123
+LMSTUDIO_LLM_PROXY_URL=http://host.docker.internal:8123
+LMSTUDIO_LLM_MODEL_NAME=model:1
+
+# Embedding Configuration
+EMBEDDING_PROVIDER=lmstudio
+# Dla lokalnego uruchomienia: http://127.0.0.1:8123
+# Dla Docker: http://host.docker.internal:8123
+LMSTUDIO_PROXY_URL=http://host.docker.internal:8123
 
 # Vector Database
-VECTOR_DB_URL=http://localhost:6333
-VECTOR_DB_COLLECTION=chat_collection
+VECTOR_DB_PROVIDER=qdrant
+# Dla lokalnego uruchomienia: http://localhost:6333
+# Dla Docker: http://qdrant:6333
+QDRANT_URL=http://qdrant:6333
+LOCAL_SEARCH_INDEX=PierwszaKolekcjaOnline
 
 # Server Configuration
-SERVER_HOST=0.0.0.0
-SERVER_PORT=8080
+API_HOST=0.0.0.0
+API_PORT=8080
+FRONTEND_PORT=3000
 ```
+
+**Więcej opcji**: Zobacz [env.example](env.example) dla pełnej listy zmiennych konfiguracyjnych.
 
 ### Dependencies
 ```python
@@ -361,13 +430,32 @@ python tests/test_endpoint.py
 5. **Real-time Collaboration**: Współpraca w czasie rzeczywistym
 
 ### Technical Improvements
-1. **Caching**: Cache dla vector search
-2. **Streaming**: Streaming odpowiedzi
+1. **Caching**: Cache dla vector search ✅ (częściowo - memory cache)
+2. **Streaming**: Streaming odpowiedzi ✅ (SSE zaimplementowane)
 3. **Batch Processing**: Przetwarzanie wsadowe
-4. **Monitoring**: Zaawansowane monitorowanie
-5. **Testing**: Kompleksowe testy
+4. **Monitoring**: Zaawansowane monitorowanie ✅ (szczegółowe logi RAG)
+5. **Testing**: Kompleksowe testy ✅ (testy jednostkowe i integracyjne)
 
 ## 📝 Changelog
+
+### v1.2.0 (2025-11-11)
+- ✅ **Docker Support**: Pełna konteneryzacja backendu i frontendu z Docker Compose
+- ✅ **Dynamic RAG**: LLM generuje zapytania do bazy wektorowej na podstawie kontekstu
+- ✅ **Streaming Responses**: Server-Sent Events (SSE) dla czasu rzeczywistego
+- ✅ **Voice Chat**: Nagrywanie głosu, transkrypcja i synteza mowy
+- ✅ **TTS Queue**: Kolejkowanie zdań dla płynnego odtwarzania audio
+- ✅ **Polskie tłumaczenia**: Wszystkie system prompty i komunikaty po polsku
+- ✅ **Szczegółowe logi**: Kompleksowe logowanie procesu RAG i wyszukiwania
+- ✅ **Debug Panel**: Panel debugowy w Flutterze z 200 ostatnimi logami
+- ✅ **Nginx Configuration**: Proxy dla frontendu i backendu z timeoutami
+- ✅ **Code Cleanup**: Usunięcie niepotrzebnych print() i DEBUG logów
+
+### v1.1.0 (2024-10-30)
+- ✅ Sklejanie wszystkich system promptów w JEDEN `SYSTEM`
+- ✅ Poprawiona alternacja ról dla LM Studio
+- ✅ Stabilizacja streamingu
+- ✅ Auto-reload w dev
+- ✅ Globalny `conftest.py` dla testów
 
 ### v1.0.0 (2024-01-01)
 - ✅ Initial implementation
@@ -403,6 +491,6 @@ For support and questions:
 
 ---
 
-**Last Updated**: 2025-10-30  
-**Version**: 1.1.0  
+**Last Updated**: 2025-11-11  
+**Version**: 1.2.0  
 **Status**: Production Ready

@@ -20,13 +20,13 @@ class SearchService(BaseQdrantService):
         self.logger.info(f"Searching vectors in collection: {collection_name}, limit: {limit}")
         
         if not self._validate_collection_name(collection_name):
-            return Result.error(f"Invalid collection name: {collection_name}")
+            return Result.error(f"Nieprawidłowa nazwa kolekcji: {collection_name}")
         
         if not self._validate_vector_dimension(query_vector):
-            return Result.error("Invalid query vector")
+            return Result.error("Nieprawidłowy wektor zapytania")
         
         if limit <= 0:
-            return Result.error(f"Invalid limit: {limit}")
+            return Result.error(f"Nieprawidłowy limit: {limit}")
         
         data = {
             "vector": query_vector,
@@ -54,49 +54,70 @@ class SearchService(BaseQdrantService):
     async def search_by_text(self, collection_name: str, query_text: str, limit: int = 5, 
                            score_threshold: Optional[float] = None, vector_size: int = 1024, embedding_service=None) -> Result[List[RAGChunk], str]:
         """Search by text using embedding service"""
-        self.logger.info(f"SearchService - Searching by text in collection: {collection_name}, query: '{query_text[:50]}...'")
-        print(f"DEBUG: SearchService - Searching by text in collection: {collection_name}, query: '{query_text[:50]}...'")
+        self.logger.info("=" * 80)
+        self.logger.info(f"🔍 SEARCH SERVICE: search_by_text")
+        self.logger.info(f"   Collection: {collection_name}")
+        self.logger.info(f"   Query: '{query_text[:100]}...'")
+        self.logger.info(f"   Limit: {limit}")
+        self.logger.info(f"   Score threshold: {score_threshold}")
+        self.logger.info(f"   Embedding service: {type(embedding_service).__name__ if embedding_service else 'None'}")
+        self.logger.info("=" * 80)
         
         # Try to get real embedding if embedding service is available
         if embedding_service:
-            self.logger.info(f"SearchService - Using embedding service: {type(embedding_service).__name__}")
-            print(f"DEBUG: SearchService - Using embedding service: {type(embedding_service).__name__}")
+            self.logger.info(f"✅ Embedding service dostępny: {type(embedding_service).__name__}")
             
             try:
+                self.logger.info(f"📤 Tworzę embedding dla zapytania: '{query_text[:100]}...'")
                 embedding_result = await embedding_service.create_embedding(query_text)
+                
                 if embedding_result.is_success:
                     query_vector = embedding_result.value
-                    self.logger.info(f"SearchService - Created real embedding: {len(query_vector)} dimensions")
-                    print(f"DEBUG: SearchService - Created real embedding: {len(query_vector)} dimensions")
+                    self.logger.info(f"✅ Utworzono embedding: {len(query_vector)} wymiarów")
+                    self.logger.info(f"   Przykładowe wartości: {query_vector[:5]}...")
                 else:
-                    self.logger.warning(f"SearchService - Failed to create embedding, using dummy vector: {embedding_result.error}")
-                    print(f"DEBUG: SearchService - Failed to create embedding, using dummy vector: {embedding_result.error}")
+                    self.logger.warning(f"⚠️ Nie udało się utworzyć embedding: {embedding_result.error}")
+                    self.logger.warning(f"   Używam dummy vector!")
                     query_vector = [0.1] * vector_size
             except Exception as e:
-                self.logger.warning(f"SearchService - Embedding service error, using dummy vector: {str(e)}")
-                print(f"DEBUG: SearchService - Embedding service error, using dummy vector: {str(e)}")
+                self.logger.error(f"❌ Błąd embedding service: {str(e)}")
+                import traceback
+                self.logger.error(f"❌ Traceback: {traceback.format_exc()}")
+                self.logger.warning(f"   Używam dummy vector!")
                 query_vector = [0.1] * vector_size
         else:
-            self.logger.warning(f"SearchService - No embedding service available, using dummy vector")
-            print(f"DEBUG: SearchService - No embedding service available, using dummy vector")
+            self.logger.warning("=" * 80)
+            self.logger.warning("⚠️ BRAK EMBEDDING SERVICE - Używam dummy vector!")
+            self.logger.warning("   To oznacza, że wyszukiwanie może nie działać poprawnie!")
+            self.logger.warning("=" * 80)
             query_vector = [0.1] * vector_size
         
-        self.logger.info(f"SearchService - Starting vector search with {len(query_vector)} dimensions")
-        print(f"DEBUG: SearchService - Starting vector search with {len(query_vector)} dimensions")
+        self.logger.info(f"🔎 Rozpoczynam wyszukiwanie wektorowe z {len(query_vector)} wymiarami")
         
         search_result = await self.search_vectors(collection_name, query_vector, limit, score_threshold)
         
         if search_result.is_error:
-            self.logger.error(f"SearchService - Vector search failed: {search_result.error}")
-            print(f"DEBUG: SearchService - Vector search failed: {search_result.error}")
+            self.logger.error("=" * 80)
+            self.logger.error(f"❌ BŁĄD WYSZUKIWANIA WEKTOROWEGO: {search_result.error}")
+            self.logger.error("=" * 80)
             return search_result
         
-        self.logger.info(f"SearchService - Vector search returned {len(search_result.value)} raw results")
-        print(f"DEBUG: SearchService - Vector search returned {len(search_result.value)} raw results")
+        self.logger.info("=" * 80)
+        self.logger.info(f"📥 Wyszukiwanie zwróciło {len(search_result.value)} surowych wyników")
+        self.logger.info("=" * 80)
+        
+        if search_result.value:
+            for i, result in enumerate(search_result.value[:3], 1):
+                score = result.get('score', 0.0)
+                result_id = result.get('id', 'N/A')
+                self.logger.info(f"   Wynik {i}: ID={result_id}, Score={score:.4f}")
+        else:
+            self.logger.warning("⚠️ Brak wyników z wyszukiwania wektorowego!")
         
         # Convert search results to RAGChunk objects
-        self.logger.info(f"SearchService - Converting {len(search_result.value)} raw results to RAGChunk objects")
-        print(f"DEBUG: SearchService - Converting {len(search_result.value)} raw results to RAGChunk objects")
+        self.logger.info("=" * 80)
+        self.logger.info(f"🔄 Konwertuję {len(search_result.value)} surowych wyników na RAGChunk")
+        self.logger.info("=" * 80)
         
         chunks = []
         for i, result in enumerate(search_result.value):
@@ -113,7 +134,7 @@ class SearchService(BaseQdrantService):
                         if clean_result.is_success:
                             text_content = clean_result.value
                         else:
-                            self.logger.warning(f"Failed to clean text from payload: {clean_result.error}")
+                            self.logger.warning(f"Nie udało się wyczyścić tekstu z payload: {clean_result.error}")
                             text_content = str(raw_text).encode('utf-8', errors='ignore').decode('utf-8')
                     else:
                         text_content = str(raw_text).encode('utf-8', errors='ignore').decode('utf-8')
@@ -128,7 +149,7 @@ class SearchService(BaseQdrantService):
                             if clean_result.is_success:
                                 text_content = clean_result.value
                             else:
-                                self.logger.warning(f"Failed to clean Payload text: {clean_result.error}")
+                                self.logger.warning(f"Nie udało się wyczyścić tekstu Payload: {clean_result.error}")
                                 text_content = str(raw_text).encode('utf-8', errors='ignore').decode('utf-8')
                         else:
                             text_content = str(raw_text).encode('utf-8', errors='ignore').decode('utf-8')
@@ -140,24 +161,22 @@ class SearchService(BaseQdrantService):
                             if clean_result.is_success:
                                 text_content = clean_result.value
                             else:
-                                self.logger.warning(f"Failed to clean Temat text: {clean_result.error}")
+                                self.logger.warning(f"Nie udało się wyczyścić tekstu Temat: {clean_result.error}")
                                 text_content = str(raw_text).encode('utf-8', errors='ignore').decode('utf-8')
                         else:
                             text_content = str(raw_text).encode('utf-8', errors='ignore').decode('utf-8')
             except Exception as e:
                 safe_exception_str = str(e).encode('utf-8', errors='ignore').decode('utf-8')
-                self.logger.warning(f"Failed to extract text from payload: {safe_exception_str}")
-                text_content = f"Chunk {result.get('id', 'unknown')}"
+                self.logger.warning(f"Nie udało się wyodrębnić tekstu z payload: {safe_exception_str}")
+                text_content = f"Fragment {result.get('id', 'nieznany')}"
             
             # If still no text, use a fallback
             if not text_content:
-                text_content = f"Chunk {result.get('id', 'unknown')}"
+                text_content = f"Fragment {result.get('id', 'nieznany')}"
             
             # Clean text to avoid encoding issues
             clean_text = text_content.encode('utf-8', errors='ignore').decode('utf-8')
             self.logger.info(f"SearchService - Processing result {i+1}: {clean_text[:50]}...")
-            safe_text = clean_text[:50].encode('utf-8', errors='ignore').decode('utf-8')
-            print(f"DEBUG: SearchService - Processing result {i+1}: {safe_text}...")
             
             # Clean all fields to avoid encoding issues
             safe_chunk_id = str(result.get("id", "")).encode('utf-8', errors='ignore').decode('utf-8')
@@ -181,9 +200,12 @@ class SearchService(BaseQdrantService):
             )
             chunks.append(chunk)
         
-        self.logger.info(f"SearchService - Successfully converted {len(chunks)} results to RAGChunk objects")
-        safe_count = str(len(chunks)).encode('utf-8', errors='ignore').decode('utf-8')
-        print(f"DEBUG: SearchService - Successfully converted {safe_count} results to RAGChunk objects")
+        self.logger.info("=" * 80)
+        self.logger.info(f"✅ Skonwertowano {len(chunks)} wyników na RAGChunk")
+        if chunks:
+            for i, chunk in enumerate(chunks[:3], 1):
+                self.logger.info(f"   Chunk {i}: ID={chunk.chunk_id}, Score={chunk.score:.4f}, Text='{chunk.text_chunk[:80]}...'")
+        self.logger.info("=" * 80)
         
         return Result.success(chunks)
     
@@ -212,15 +234,15 @@ class SearchService(BaseQdrantService):
         self.logger.info(f"Batch searching {len(query_vectors)} queries in collection: {collection_name}")
         
         if not self._validate_collection_name(collection_name):
-            return Result.error(f"Invalid collection name: {collection_name}")
+            return Result.error(f"Nieprawidłowa nazwa kolekcji: {collection_name}")
         
         if not query_vectors:
-            return Result.error("No query vectors provided")
+            return Result.error("Nie podano wektorów zapytania")
         
         # Validate all vectors
         for i, vector in enumerate(query_vectors):
             if not self._validate_vector_dimension(vector):
-                return Result.error(f"Invalid vector at index {i}")
+                return Result.error(f"Nieprawidłowy wektor na indeksie {i}")
         
         data = {
             "searches": [
@@ -250,10 +272,10 @@ class SearchService(BaseQdrantService):
         self.logger.info(f"Recommending points in collection: {collection_name}")
         
         if not self._validate_collection_name(collection_name):
-            return Result.error(f"Invalid collection name: {collection_name}")
+            return Result.error(f"Nieprawidłowa nazwa kolekcji: {collection_name}")
         
         if not positive_ids:
-            return Result.error("No positive IDs provided")
+            return Result.error("Nie podano pozytywnych ID")
         
         data = {
             "positive": positive_ids,
