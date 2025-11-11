@@ -1,5 +1,7 @@
 # 🎯 Voice AI Assistant
 
+[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/r/Maggio333/ai-agent-starter-pack)
+
 Zaawansowany system chatbot z architekturą Clean Architecture, integrujący Flutter frontend, FastAPI backend, bazę wektorową i inteligentną analizę kontekstu.
 
 ## 🚀 Quick Start
